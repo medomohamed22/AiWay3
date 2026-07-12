@@ -1,214 +1,39 @@
-const $ = selector => document.querySelector(selector);
-const chat = $("#chat");
-const promptEl = $("#prompt");
-const sendBtn = $("#sendBtn");
-const preview = $("#preview");
-const modelSelect = $("#modelSelect");
-const jumpBottom = $("#jumpBottom");
-
-const STORE = "aiway_chats_v3";
-const MEMORY = "aiway_memory";
-const THEME = "aiway_theme";
-const MODEL = "aiway_model";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_FILES = 6;
-const ALLOWED = new Set(["image/jpeg","image/png","image/webp","image/gif","application/pdf","text/plain","text/csv"]);
-
-let activeId = null;
-let pending = [];
-let generating = false;
-let controller = null;
-let userPinnedToBottom = true;
-
-const uid = () => crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
-const chats = () => { try { return JSON.parse(localStorage.getItem(STORE) || "[]"); } catch { return []; } };
-const save = value => localStorage.setItem(STORE, JSON.stringify(value));
-const esc = (s = "") => String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-
-function selectedModelLabel() {
-  return modelSelect.options[modelSelect.selectedIndex]?.dataset.label || modelSelect.options[modelSelect.selectedIndex]?.textContent || "النموذج المختار";
-}
-function toast(text) {
-  const node = $("#toast");
-  node.textContent = text;
-  node.style.display = "block";
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => node.style.display = "none", 2200);
-}
-function md(source = "") {
-  const blocks = [];
-  let s = source.replace(/```([\w+-]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const key = `@@CODE${blocks.length}@@`;
-    blocks.push(`<div class="code"><div class="code-head"><span>${esc(lang || "code")}</span><button class="copyCode">نسخ</button></div><pre><code>${esc(code.trim())}</code></pre></div>`);
-    return key;
-  });
-  let output = esc(s)
-    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`([^`\n]+)`/g, '<code class="inline">$1</code>');
-  let html = "", list = "";
-  for (const line of output.split("\n")) {
-    let match = line.match(/^\s*[-*] (.+)$/);
-    if (match) { if (list !== "ul") { if (list) html += `</${list}>`; html += "<ul>"; list = "ul"; } html += `<li>${match[1]}</li>`; continue; }
-    match = line.match(/^\s*\d+\. (.+)$/);
-    if (match) { if (list !== "ol") { if (list) html += `</${list}>`; html += "<ol>"; list = "ol"; } html += `<li>${match[1]}</li>`; continue; }
-    if (list) { html += `</${list}>`; list = ""; }
-    if (!line.trim()) continue;
-    html += /^<h/.test(line) ? line : `<p>${line}</p>`;
-  }
-  if (list) html += `</${list}>`;
-  blocks.forEach((block, index) => html = html.replace(`@@CODE${index}@@`, block));
-  return html;
-}
-function getActive() { return chats().find(item => item.id === activeId); }
-function ensureChat() {
-  if (getActive()) return;
-  const all = chats();
-  const item = { id: uid(), title: "محادثة جديدة", time: Date.now(), messages: [] };
-  all.push(item); save(all); activeId = item.id;
-}
-function mutate(fn) {
-  const all = chats();
-  const index = all.findIndex(item => item.id === activeId);
-  if (index < 0) return;
-  fn(all[index]); all[index].time = Date.now(); save(all); renderHistory();
-}
-function format(time) {
-  return new Intl.DateTimeFormat("ar-EG", {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(time));
-}
-function isNearBottom() { return chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90; }
-function scrollToBottom(smooth = true) { chat.scrollTo({ top: chat.scrollHeight, behavior: smooth ? "smooth" : "auto" }); }
-function updateJumpButton() {
-  userPinnedToBottom = isNearBottom();
-  jumpBottom.classList.toggle("show", !userPinnedToBottom && chat.scrollHeight > chat.clientHeight + 120);
-}
-function welcome() {
-  chat.innerHTML = `<div class="welcome"><div class="welcome-inner"><div class="orb">✦</div><h1>أهلًا بك</h1><p>اختر ChatGPT أو Claude أو Gemini وابدأ المحادثة.</p><div class="quick"><button data-q="لخّص لي هذا الموضوع: ">تلخيص</button><button data-q="اكتب لي كود احترافي لـ ">برمجة</button><button data-q="اشرح لي ببساطة: ">شرح مبسط</button></div></div></div>`;
-  chat.querySelectorAll("[data-q]").forEach(button => button.onclick = () => { promptEl.value = button.dataset.q; promptEl.focus(); });
-  updateJumpButton();
-}
-function renderMessage(message, streaming = false) {
-  const article = document.createElement("article");
-  article.className = `message ${message.role === "user" ? "user" : "assistant"}`;
-  const attachments = (message.files || []).map(file => file.type.startsWith("image/") ? `<img src="${file.data}" alt="${esc(file.name)}">` : `<span class="file-chip">📄 ${esc(file.name)}</span>`).join("");
-  article.innerHTML = `<div class="avatar">${message.role === "user" ? "أنت" : "AI"}</div><div class="bubble"><div class="meta">${message.role === "user" ? "أنت" : esc(message.modelName || selectedModelLabel())} • ${format(message.time)}</div>${attachments ? `<div class="attachments">${attachments}</div>` : ""}<div class="content">${streaming ? '<p>جاري بدء الرد…</p>' : md(message.text)}</div>${streaming ? "" : '<div class="msg-actions"><button data-copy>نسخ</button></div>'}</div>`;
-  chat.appendChild(article); bindMessage(article, message); return article;
-}
-function bindMessage(article, message) {
-  article.querySelector("[data-copy]")?.addEventListener("click", async () => { await navigator.clipboard.writeText(message.text); toast("تم النسخ"); });
-  article.querySelectorAll(".copyCode").forEach(button => button.onclick = async () => { await navigator.clipboard.writeText(button.closest(".code").querySelector("code").innerText); toast("تم نسخ الكود"); });
-}
-function render() {
-  const current = getActive();
-  if (!current?.messages.length) return welcome();
-  chat.innerHTML = ""; current.messages.forEach(message => renderMessage(message));
-  requestAnimationFrame(() => { scrollToBottom(false); updateJumpButton(); });
-}
-function renderHistory() {
-  const query = $("#historySearch").value.trim().toLowerCase();
-  let all = chats().sort((a,b) => b.time - a.time);
-  if (query) all = all.filter(item => `${item.title} ${item.messages.map(m => m.text).join(" ")}`.toLowerCase().includes(query));
-  $("#history").innerHTML = "";
-  all.forEach(item => {
-    const row = document.createElement("div"); row.className = "hist";
-    row.innerHTML = `<button class="hist-main ${item.id === activeId ? "active" : ""}"><div class="hist-title">${esc(item.title)}</div><div class="hist-date">${format(item.time)}</div></button><button class="hist-del" title="حذف">🗑</button>`;
-    row.querySelector(".hist-main").onclick = () => { activeId = item.id; render(); renderHistory(); closeSide(); };
-    row.querySelector(".hist-del").onclick = () => { if (!confirm("حذف المحادثة؟")) return; const remaining = chats().filter(x => x.id !== item.id); save(remaining); if (activeId === item.id) activeId = remaining[0]?.id || null; ensureChat(); render(); renderHistory(); };
-    $("#history").appendChild(row);
-  });
-}
-function renderPreview() {
-  preview.innerHTML = "";
-  pending.forEach((file, index) => {
-    const item = document.createElement("div"); item.className = "preview-item";
-    item.innerHTML = `${file.type.startsWith("image/") ? `<img src="${file.data}" alt="">` : '<div style="font-size:30px">📄</div>'}<span>${esc(file.name)}</span><button aria-label="حذف">×</button>`;
-    item.querySelector("button").onclick = () => { pending.splice(index, 1); renderPreview(); };
-    preview.appendChild(item);
-  });
-}
-async function readFiles(fileList) {
-  for (const file of [...fileList].slice(0, MAX_FILES - pending.length)) {
-    if (!ALLOWED.has(file.type)) { toast(`نوع غير مدعوم: ${file.name}`); continue; }
-    if (file.size > MAX_FILE_BYTES) { toast(`الملف أكبر من 8MB: ${file.name}`); continue; }
-    if (file.type === "text/plain" || file.type === "text/csv") {
-      const text = (await file.text()).slice(0, 100000);
-      pending.push({ name:file.name, type:"text/plain", text });
-    } else {
-      const data = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
-      pending.push({ name:file.name, type:file.type, data });
-    }
-  }
-  renderPreview();
-}
-function serializeMessages(messages) {
-  return messages.map(message => ({
-    role: message.role,
-    text: message.text + (message.files || []).filter(f => f.type === "text/plain").map(f => `\n\n--- محتوى الملف ${f.name} ---\n${f.text || ""}`).join(""),
-    files: (message.files || []).filter(f => f.type !== "text/plain")
-  }));
-}
-async function generate() {
-  generating = true; sendBtn.textContent = "إيقاف ■"; sendBtn.classList.add("stop"); controller = new AbortController();
-  const modelName = selectedModelLabel();
-  const draft = { id:uid(), role:"assistant", text:"", time:Date.now(), modelName };
-  const article = renderMessage(draft, true); const content = article.querySelector(".content");
-  let fullText = "", buffer = "", renderQueued = false;
-  const paint = () => {
-    renderQueued = false;
-    content.innerHTML = md(fullText) + '<span class="stream-caret"></span>';
-    bindMessage(article, draft);
-    if (userPinnedToBottom) scrollToBottom(false); else updateJumpButton();
-  };
-  try {
-    const response = await fetch("/api/chat", { method:"POST", headers:{"Content-Type":"application/json"}, signal:controller.signal, body:JSON.stringify({ model:modelSelect.value, modelName, memory:localStorage.getItem(MEMORY)||"", messages:serializeMessages(getActive().messages) }) });
-    if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || `خطأ ${response.status}`); }
-    const reader = response.body.getReader(); const decoder = new TextDecoder();
-    while (true) {
-      const {done,value} = await reader.read(); if (done) break;
-      buffer += decoder.decode(value,{stream:true});
-      const lines = buffer.split(/\r?\n/); buffer = lines.pop() || "";
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const raw = line.slice(5).trim(); if (!raw || raw === "[DONE]") continue;
-        try { const chunk = JSON.parse(raw); const token = chunk.choices?.[0]?.delta?.content; if (typeof token === "string") { fullText += token; if (!renderQueued) { renderQueued = true; requestAnimationFrame(paint); } } } catch {}
-      }
-    }
-    if (!fullText) throw new Error("لم يصل رد نصي من النموذج.");
-    draft.text = fullText; mutate(current => current.messages.push(draft)); content.innerHTML = md(fullText); article.querySelector(".bubble").insertAdjacentHTML("beforeend", '<div class="msg-actions"><button data-copy>نسخ</button></div>'); bindMessage(article,draft); updateJumpButton();
-  } catch (error) {
-    if (error.name === "AbortError") article.remove(); else content.innerHTML = `<p style="color:var(--danger)">${esc(error.message)}</p>`;
-  } finally { generating = false; controller = null; sendBtn.textContent = "إرسال ↑"; sendBtn.classList.remove("stop"); }
-}
-async function send() {
-  if (generating) { controller?.abort(); return; }
-  if (!promptEl.value.trim() && !pending.length) return;
-  ensureChat(); const text = promptEl.value.trim() || "حلّل الملفات المرفقة.";
-  const message = { id:uid(), role:"user", text, files:[...pending], time:Date.now() };
-  mutate(current => { current.messages.push(message); if (current.messages.length === 1) current.title = text.slice(0,45); });
-  promptEl.value = ""; promptEl.style.height = "auto"; pending = []; renderPreview(); render(); userPinnedToBottom = true; await generate();
-}
-function openModal(id) { closeSide(); document.querySelectorAll(".modal").forEach(x => x.classList.remove("open")); $("#"+id).classList.add("open"); $("#overlay").classList.add("show"); }
-function closeModal() { document.querySelectorAll(".modal").forEach(x => x.classList.remove("open")); $("#overlay").classList.remove("show"); }
-function closeSide() { $("#sidebar").classList.remove("open"); $("#drawerOverlay").classList.remove("show"); }
-
-chat.addEventListener("scroll", updateJumpButton, {passive:true});
-jumpBottom.onclick = () => { userPinnedToBottom = true; scrollToBottom(true); };
-$("#menuBtn").onclick = () => { $("#sidebar").classList.add("open"); $("#drawerOverlay").classList.add("show"); };
-$("#closeSide").onclick = closeSide; $("#drawerOverlay").onclick = closeSide; $("#overlay").onclick = closeModal;
-document.querySelectorAll(".closeModal").forEach(button => button.onclick = closeModal);
-$("#newChat").onclick = () => { activeId = null; ensureChat(); render(); renderHistory(); closeSide(); };
-$("#historySearch").oninput = renderHistory; $("#sendBtn").onclick = send;
-promptEl.onkeydown = event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } };
-promptEl.oninput = () => { promptEl.style.height = "auto"; promptEl.style.height = `${Math.min(promptEl.scrollHeight,130)}px`; };
-$("#fileBtn").onclick = () => $("#fileInput").click(); $("#cameraBtn").onclick = () => $("#cameraInput").click();
-$("#fileInput").onchange = event => { readFiles(event.target.files); event.target.value = ""; }; $("#cameraInput").onchange = event => { readFiles(event.target.files); event.target.value = ""; };
-$("#themeBtn").onclick = () => { document.body.classList.toggle("dark"); localStorage.setItem(THEME,document.body.classList.contains("dark")?"dark":"light"); };
-$("#settingsBtn").onclick = () => { $("#memoryInput").value = localStorage.getItem(MEMORY)||""; openModal("settingsModal"); };
-$("#saveSettings").onclick = () => { localStorage.setItem(MEMORY,$("#memoryInput").value.slice(0,4000)); closeModal(); toast("تم حفظ الإعدادات"); };
-modelSelect.onchange = () => localStorage.setItem(MODEL,modelSelect.value);
-
-document.body.classList.toggle("dark",localStorage.getItem(THEME)==="dark");
-const savedModel = localStorage.getItem(MODEL); if ([...modelSelect.options].some(o=>o.value===savedModel)) modelSelect.value=savedModel;
-const all = chats(); activeId = all.sort((a,b)=>b.time-a.time)[0]?.id||null; ensureChat(); renderHistory(); render();
+const $=s=>document.querySelector(s),chat=$('#chat'),promptEl=$('#prompt'),sendBtn=$('#sendBtn'),preview=$('#preview'),jumpBottom=$('#jumpBottom');
+const STORE='aiway_chats_v4',MODEL_KEY='aiway_model_v4',COINS_KEY='aiway_coins_v1';
+const MAX_FILE_BYTES=8*1024*1024,MAX_FILES=6,ALLOWED=new Set(['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv']);
+const icon=(brand)=>({
+ openai:`<svg class="brand-icon" viewBox="0 0 24 24"><path d="M12 3a4.5 4.5 0 0 1 4.3 3.2A4.5 4.5 0 0 1 19 13.9a4.5 4.5 0 0 1-6.9 5.3A4.5 4.5 0 0 1 4.7 16 4.5 4.5 0 0 1 5 8.1 4.5 4.5 0 0 1 12 3Z"/><path d="m8.2 8.4 7.6 4.4M8.2 15.6l7.6-4.4M12 7.4v9.2"/></svg>`,
+ anthropic:`<svg class="brand-icon" viewBox="0 0 24 24"><path d="m5 19 7-14 7 14M8.2 13h7.6"/></svg>`,
+ google:`<svg class="brand-icon google-mark" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 8.7 11.4H12v-4h12c.1.5.1 1 .1 1.6A12 12 0 1 1 12 0c3.2 0 5.9 1.2 8 3.1l-2.8 2.8A7.5 7.5 0 0 0 12 3Z"/></svg>`,
+ deepseek:`<svg class="brand-icon" viewBox="0 0 24 24"><path d="M4 13c2.5-5.7 8.6-7.7 16-4.7-1.5 6.8-6.8 10.6-13.6 8.8L4 20v-7Z"/><circle cx="15.5" cy="10.5" r="1"/><path d="M8 15c2 .7 4.2.6 6.2-.4"/></svg>`
+}[brand]);
+const MODELS=[
+ {id:'openai/gpt-5.6-sol',name:'GPT-5.6 Sol',brand:'openai',company:'OpenAI',cost:4},
+ {id:'anthropic/claude-fable-5',name:'Claude Fable 5',brand:'anthropic',company:'Anthropic',cost:5},
+ {id:'google/gemini-3.5-flash',name:'Gemini 3.5 Flash',brand:'google',company:'Google',cost:2},
+ {id:'deepseek/deepseek-chat',name:'DeepSeek V3',brand:'deepseek',company:'DeepSeek',cost:1}
+];
+let activeId=null,pending=[],generating=false,controller=null,userPinnedToBottom=true,currentModel=MODELS.find(m=>m.id===localStorage.getItem(MODEL_KEY))||MODELS[2];
+const uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2),chats=()=>{try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return[]}},save=v=>localStorage.setItem(STORE,JSON.stringify(v));
+const esc=(s='')=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const coins=()=>Number(localStorage.getItem(COINS_KEY)??10);function setCoins(v){v=Math.max(0,Math.floor(v));localStorage.setItem(COINS_KEY,String(v));$('#coinsCount').textContent=v;$('#modalCoins').textContent=v}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
+function md(s=''){const b=[];s=s.replace(/```([\w+-]*)\n?([\s\S]*?)```/g,(_,l,c)=>{const k=`@@${b.length}@@`;b.push(`<div class="code"><div class="code-head"><span>${esc(l||'code')}</span><button class="copyCode">نسخ</button></div><pre><code>${esc(c.trim())}</code></pre></div>`);return k});let o=esc(s).replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>');let h='',list='';for(const line of o.split('\n')){let m=line.match(/^\s*[-*] (.+)$/);if(m){if(list!=='ul'){if(list)h+=`</${list}>`;h+='<ul>';list='ul'}h+=`<li>${m[1]}</li>`;continue}m=line.match(/^\s*\d+\. (.+)$/);if(m){if(list!=='ol'){if(list)h+=`</${list}>`;h+='<ol>';list='ol'}h+=`<li>${m[1]}</li>`;continue}if(list){h+=`</${list}>`;list=''}if(!line.trim())continue;h+=/^<h/.test(line)?line:`<p>${line}</p>`}if(list)h+=`</${list}>`;b.forEach((x,i)=>h=h.replace(`@@${i}@@`,x));return h}
+function getActive(){return chats().find(c=>c.id===activeId)}function ensure(){if(getActive())return;const a=chats(),c={id:uid(),title:'محادثة جديدة',time:Date.now(),messages:[]};a.push(c);save(a);activeId=c.id}function mutate(fn){const a=chats(),i=a.findIndex(c=>c.id===activeId);if(i<0)return;fn(a[i]);a[i].time=Date.now();save(a);renderHistory()}function format(t){return new Intl.DateTimeFormat('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(t))}
+function renderModelPicker(){const menu=$('#modelMenu');menu.innerHTML=MODELS.map(m=>`<button class="model-option ${m.id===currentModel.id?'active':''}" data-model="${m.id}" role="option"><span class="model-brand">${icon(m.brand)}</span><span class="model-copy"><b>${m.name}</b><small>${m.company} • ${m.cost} كوين للمحاولة</small></span><span class="check">✓</span></button>`).join('');$('#selectedModelIcon').innerHTML=icon(currentModel.brand);$('#selectedModelName').textContent=currentModel.name;$('#costNote').textContent=`تكلفة المحاولة بالنموذج الحالي: ${currentModel.cost} كوين`;menu.querySelectorAll('[data-model]').forEach(btn=>btn.onclick=()=>{currentModel=MODELS.find(m=>m.id===btn.dataset.model);localStorage.setItem(MODEL_KEY,currentModel.id);renderModelPicker();closeModelMenu()})}
+function closeModelMenu(){$('#modelMenu').classList.remove('open');$('#modelTrigger').setAttribute('aria-expanded','false')}
+function welcome(){chat.innerHTML=`<div class="welcome"><div class="welcome-inner"><div class="orb">✦</div><h1>أهلًا بك في AiWay</h1><p>اختر النموذج المناسب وابدأ المحادثة.</p><div class="quick"><button data-q="لخّص لي هذا الموضوع: ">تلخيص</button><button data-q="اكتب لي كود احترافي لـ ">برمجة</button><button data-q="اشرح لي ببساطة: ">شرح مبسط</button></div></div></div>`;chat.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{promptEl.value=b.dataset.q;promptEl.focus()});updateJump()}
+function bindMessage(e,m){e.querySelector('[data-copy]')?.addEventListener('click',async()=>{await navigator.clipboard.writeText(m.text);toast('تم النسخ')});e.querySelectorAll('.copyCode').forEach(b=>b.onclick=async()=>{await navigator.clipboard.writeText(b.closest('.code').querySelector('code').innerText);toast('تم نسخ الكود')})}
+function renderMessage(m,stream=false){const e=document.createElement('article');e.className=`message ${m.role==='user'?'user':'assistant'}`;const at=(m.files||[]).map(f=>f.type.startsWith('image/')?`<img src="${f.data}" alt="${esc(f.name)}">`:`<span class="file-chip">📄 ${esc(f.name)}</span>`).join('');e.innerHTML=`<div class="avatar">${m.role==='user'?'أنت':'AI'}</div><div class="bubble"><div class="meta">${m.role==='user'?'أنت':esc(m.modelName||currentModel.name)} • ${format(m.time)}</div>${at?`<div class="attachments">${at}</div>`:''}<div class="content">${stream?'<p>جاري بدء الرد…</p>':md(m.text)}</div>${stream?'':'<div class="msg-actions"><button data-copy>نسخ</button></div>'}</div>`;chat.appendChild(e);bindMessage(e,m);return e}
+function render(){const c=getActive();if(!c?.messages.length)return welcome();chat.innerHTML='';c.messages.forEach(m=>renderMessage(m));requestAnimationFrame(()=>scrollBottom(false))}
+function renderHistory(){const q=$('#historySearch').value.trim().toLowerCase();let a=chats().sort((x,y)=>y.time-x.time);if(q)a=a.filter(c=>(c.title+' '+c.messages.map(m=>m.text).join(' ')).toLowerCase().includes(q));$('#history').innerHTML='';a.forEach(c=>{const r=document.createElement('div');r.className='hist';r.innerHTML=`<button class="hist-main ${c.id===activeId?'active':''}"><div class="hist-title">${esc(c.title)}</div><div class="hist-date">${format(c.time)}</div></button><button class="hist-del" title="حذف"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg></button>`;r.querySelector('.hist-main').onclick=()=>{activeId=c.id;render();renderHistory();closeSide()};r.querySelector('.hist-del').onclick=()=>{if(!confirm('حذف المحادثة؟'))return;const z=chats().filter(x=>x.id!==c.id);save(z);if(activeId===c.id)activeId=z[0]?.id||null;ensure();render();renderHistory()};$('#history').appendChild(r)})}
+function renderPreview(){preview.innerHTML='';pending.forEach((f,i)=>{const d=document.createElement('div');d.className='preview-item';d.innerHTML=`${f.type.startsWith('image/')?`<img src="${f.data}">`:'<div class="file-preview-icon">PDF</div>'}<span>${esc(f.name)}</span><button>×</button>`;d.querySelector('button').onclick=()=>{pending.splice(i,1);renderPreview()};preview.appendChild(d)})}
+async function readFiles(files){for(const f of [...files].slice(0,MAX_FILES-pending.length)){if(!ALLOWED.has(f.type)){toast(`نوع غير مدعوم: ${f.name}`);continue}if(f.size>MAX_FILE_BYTES){toast(`الملف أكبر من 8MB: ${f.name}`);continue}if(['text/plain','text/csv'].includes(f.type)){pending.push({name:f.name,type:'text/plain',text:(await f.text()).slice(0,100000)})}else{const data=await new Promise((r,j)=>{const x=new FileReader;x.onload=()=>r(x.result);x.onerror=j;x.readAsDataURL(f)});pending.push({name:f.name,type:f.type,data})}}renderPreview()}
+function serialize(ms){return ms.map(m=>({role:m.role,text:m.text+(m.files||[]).filter(f=>f.type==='text/plain').map(f=>`\n\n--- محتوى الملف ${f.name} ---\n${f.text||''}`).join(''),files:(m.files||[]).filter(f=>f.type!=='text/plain')}))}
+function nearBottom(){return chat.scrollHeight-chat.scrollTop-chat.clientHeight<110}function updateJump(){userPinnedToBottom=nearBottom();jumpBottom.classList.toggle('show',!userPinnedToBottom&&chat.scrollHeight>chat.clientHeight+100)}function scrollBottom(smooth=true){chat.scrollTo({top:chat.scrollHeight,behavior:smooth?'smooth':'auto'});userPinnedToBottom=true;updateJump()}
+async function generate(cost){generating=true;sendBtn.classList.add('stop');sendBtn.querySelector('span').textContent='إيقاف';controller=new AbortController();const draft={id:uid(),role:'assistant',text:'',time:Date.now(),modelName:currentModel.name},e=renderMessage(draft,true),content=e.querySelector('.content');let full='',buf='',queued=false;const paint=()=>{queued=false;content.innerHTML=md(full)+'<span class="stream-caret"></span>';bindMessage(e,draft);if(userPinnedToBottom)scrollBottom(false);else updateJump()};try{const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({model:currentModel.id,messages:serialize(getActive().messages)})});if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||`خطأ ${res.status}`)}const rd=res.body.getReader(),dec=new TextDecoder();while(true){const{done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split(/\r?\n/);buf=lines.pop()||'';for(const line of lines){if(!line.startsWith('data:'))continue;const raw=line.slice(5).trim();if(!raw||raw==='[DONE]')continue;try{const j=JSON.parse(raw),t=j.choices?.[0]?.delta?.content;if(typeof t==='string'){full+=t;if(!queued){queued=true;requestAnimationFrame(paint)}}}catch{}}}if(!full)throw new Error('لم يصل رد نصي من النموذج.');draft.text=full;mutate(c=>c.messages.push(draft));content.innerHTML=md(full);e.querySelector('.bubble').insertAdjacentHTML('beforeend','<div class="msg-actions"><button data-copy>نسخ</button></div>');bindMessage(e,draft)}catch(err){setCoins(coins()+cost);if(err.name==='AbortError')e.remove();else content.innerHTML=`<p style="color:var(--danger)">${esc(err.message)}</p>`}finally{generating=false;controller=null;sendBtn.classList.remove('stop');sendBtn.querySelector('span').textContent='إرسال';updateJump()}}
+async function send(){if(generating){controller?.abort();return}if(!promptEl.value.trim()&&!pending.length)return;if(coins()<currentModel.cost){openModal('coinsModal');toast('الرصيد غير كافٍ لهذا النموذج');return}ensure();const cost=currentModel.cost;const text=promptEl.value.trim()||'حلّل الملفات المرفقة.';const m={id:uid(),role:'user',text,files:[...pending],time:Date.now()};mutate(c=>{c.messages.push(m);if(c.messages.length===1)c.title=text.slice(0,45)});setCoins(coins()-cost);promptEl.value='';promptEl.style.height='auto';pending=[];renderPreview();render();userPinnedToBottom=true;await generate(cost)}
+function openModal(id){closeSide();$('#'+id).classList.add('open');$('#overlay').classList.add('show')}function closeModal(){$('.modal.open')?.classList.remove('open');$('#overlay').classList.remove('show')}function closeSide(){$('#sidebar').classList.remove('open');$('#drawerOverlay').classList.remove('show')}
+function renderCosts(){$('#costList').innerHTML=MODELS.map(m=>`<div class="cost-row"><span class="model-brand">${icon(m.brand)}</span><span>${m.name}</span><b>${m.cost} كوين</b></div>`).join('')}
+chat.addEventListener('scroll',updateJump,{passive:true});jumpBottom.onclick=()=>scrollBottom(true);$('#modelTrigger').onclick=e=>{e.stopPropagation();const open=$('#modelMenu').classList.toggle('open');$('#modelTrigger').setAttribute('aria-expanded',String(open))};document.addEventListener('click',closeModelMenu);$('#modelPicker').onclick=e=>e.stopPropagation();$('#coinsBtn').onclick=()=>openModal('coinsModal');$('#menuBtn').onclick=()=>{$('#sidebar').classList.add('open');$('#drawerOverlay').classList.add('show')};$('#closeSide').onclick=closeSide;$('#drawerOverlay').onclick=closeSide;$('#overlay').onclick=closeModal;document.querySelectorAll('.closeModal').forEach(b=>b.onclick=closeModal);document.querySelectorAll('.package').forEach(b=>b.onclick=()=>{setCoins(coins()+Number(b.dataset.add));closeModal();toast('تمت إضافة الكوينز تجريبيًا')});$('#newChat').onclick=()=>{activeId=null;ensure();render();renderHistory();closeSide()};$('#historySearch').oninput=renderHistory;sendBtn.onclick=send;promptEl.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};promptEl.oninput=()=>{promptEl.style.height='auto';promptEl.style.height=Math.min(promptEl.scrollHeight,130)+'px'};$('#fileBtn').onclick=()=>$('#fileInput').click();$('#cameraBtn').onclick=()=>$('#cameraInput').click();$('#fileInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};$('#cameraInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};
+if(localStorage.getItem(COINS_KEY)===null)localStorage.setItem(COINS_KEY,'10');setCoins(coins());renderModelPicker();renderCosts();const all=chats();activeId=all.sort((a,b)=>b.time-a.time)[0]?.id||null;ensure();renderHistory();render();
