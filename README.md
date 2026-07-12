@@ -1,76 +1,34 @@
-# AiWay + OpenRouter + Vercel
+# AiWay OpenRouter — نسخة الهواتف المحسّنة
 
-نسخة منظّمة من AiWay تفصل الواجهة عن الخادم، وتستخدم OpenRouter للوصول إلى نماذج GPT وClaude وGemini وDeepSeek وغيرها.
+المشروع يدعم ثلاثة اختيارات فقط، وكل اختيار يستخدم alias من OpenRouter يتحدث تلقائياً إلى أحدث نسخة في العائلة:
 
-## البنية
+- `~openai/gpt-latest`
+- `~anthropic/claude-opus-latest`
+- `~google/gemini-pro-latest`
 
-```text
-aiway-openrouter-vercel/
-├─ api/
-│  ├─ chat.js       # يرسل الطلب إلى OpenRouter ويعيد SSE streaming
-│  └─ models.js     # يجلب قائمة النماذج المتاحة
-├─ assets/
-│  ├─ app.js        # منطق الواجهة والمحادثات والملفات
-│  └─ styles.css
-├─ index.html
-├─ vercel.json
-├─ package.json
-└─ .env.example
-```
-
-## التشغيل محليًا
-
-1. ثبّت Vercel CLI:
+## تشغيل محلي
 
 ```bash
 npm i -g vercel
-```
-
-2. انسخ ملف البيئة:
-
-```bash
 cp .env.example .env.local
-```
-
-3. ضع مفتاحك في `.env.local`:
-
-```env
-OPENROUTER_API_KEY=sk-or-v1-...
-APP_URL=http://localhost:3000
-APP_NAME=AiWay
-```
-
-4. شغّل:
-
-```bash
 vercel dev
 ```
 
-## النشر على Vercel
+## متغيرات Vercel
 
-1. ارفع المشروع إلى GitHub أو نفّذ `vercel`.
-2. من Vercel افتح:
-   **Project → Settings → Environment Variables**
-3. أضف:
-   - `OPENROUTER_API_KEY`
-   - `APP_URL` = رابط مشروعك النهائي
-   - `APP_NAME` = `AiWay`
-   - اختياريًا `ALLOWED_ORIGINS` = رابط موقعك، أو عدة روابط مفصولة بفواصل.
-4. أعد النشر بعد إضافة أو تعديل المتغيرات.
+```env
+OPENROUTER_API_KEY=sk-or-v1-...
+APP_URL=https://your-project.vercel.app
+APP_NAME=AiWay
+ALLOWED_ORIGINS=https://your-project.vercel.app
+```
 
-## الأمان
+## التعديلات الجديدة
 
-- مفتاح OpenRouter لا يُرسل للمتصفح ولا يُحفظ في `localStorage`.
-- الخادم يفحص Origin عند ضبط `ALLOWED_ORIGINS`.
-- الطلبات محدودة بعدد رسائل وملفات وحجم أقصى.
-- الملفات المقبولة: JPEG وPNG وWEBP وGIF وPDF وTXT وCSV.
-- TXT وCSV يتحولان إلى نص في المتصفح، أما الصور وPDF فتُرسل بصيغة data URL.
-- لا ترفع `.env.local` إلى GitHub.
-
-## ملاحظة إنتاجية مهمة
-
-الحماية الحالية مناسبة لتطبيق شخصي أو MVP. عند فتح الموقع للعامة أضف تسجيل دخول وقاعدة بيانات وحدود استخدام حقيقية، مثل:
-- Vercel Firewall / WAF أو Upstash Rate Limit.
-- Supabase Auth أو Clerk.
-- تخزين المحادثات في قاعدة بيانات بدل `localStorage`.
-- رصيد فعلي محسوب على الخادم، وليس في الواجهة.
+- إصلاح كامل لعرض الهاتف ومنع التمرير الأفقي للصفحة.
+- قائمة نماذج مختصرة ومنظمة تضم ChatGPT وClaude وGemini فقط.
+- المساعد يعرّف نفسه باسم النموذج المختار عند سؤاله.
+- Streaming منظم باستخدام `requestAnimationFrame` لتقليل الاهتزاز.
+- لا يتم إجبار المستخدم على النزول أثناء القراءة؛ التمرير التلقائي يعمل فقط إذا كان المستخدم عند أسفل المحادثة.
+- زر عائم للنزول مباشرة إلى آخر الرسائل.
+- إصلاح عرض الأكواد الطويلة داخل الهاتف مع تمرير أفقي داخل صندوق الكود فقط.
