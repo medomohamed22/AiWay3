@@ -33,3 +33,100 @@
   .login-btn svg{display:none}
   .coins-btn{padding-inline:8px}
 }
+
+/* ===== Header balance + high-contrast user copy button ===== */
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+  direction:rtl;
+}
+.login-btn,.coins-btn{
+  height:42px;
+  border-radius:14px;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease;
+  box-shadow:0 4px 14px rgba(55,30,86,.05);
+}
+.login-btn{
+  min-width:96px;
+  max-width:190px;
+  justify-content:center;
+  border:1px solid #dcccf0;
+  background:#f8f4ff;
+  color:#6330a8;
+  padding-inline:12px;
+}
+.login-btn:hover,.login-btn:active{
+  background:#efe5ff;
+  border-color:#c4a5e8;
+  box-shadow:0 7px 18px rgba(124,58,237,.12);
+}
+.login-btn svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.9;
+}
+.login-btn.signed-in{
+  background:#f1e8ff;
+  border-color:#cdb3ed;
+  color:#5c269d;
+}
+.coins-btn{
+  min-width:68px;
+  justify-content:center;
+  border-color:#ead8a9;
+  padding-inline:11px;
+}
+.user .msg-actions .copy-message,
+.user .msg-actions .copy-message span,
+.user .msg-actions .copy-message svg{
+  color:#fff !important;
+  stroke:#fff !important;
+}
+.user .msg-actions .copy-message{
+  background:rgba(255,255,255,.19) !important;
+  border-color:rgba(255,255,255,.72) !important;
+  text-shadow:0 1px 2px rgba(50,20,80,.24);
+}
+.user .msg-actions .copy-message:hover,
+.user .msg-actions .copy-message:active{
+  background:rgba(255,255,255,.3) !important;
+  border-color:#fff !important;
+}
+
+@media(max-width:850px){
+  :root{--top:108px}
+  .topbar{
+    height:var(--top);
+    flex:0 0 var(--top);
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:42px 48px;
+    grid-template-areas:
+      "brand actions"
+      "model model";
+    align-content:center;
+    gap:7px 8px;
+    padding:7px 9px;
+  }
+  .brand{grid-area:brand;justify-self:start;overflow:visible}
+  .header-actions{grid-area:actions;justify-self:end;gap:6px;direction:ltr}
+  .model-picker{grid-area:model;width:100%;max-width:none;justify-self:stretch}
+  .model-trigger{height:44px;border-radius:14px;padding-inline:11px}
+  .login-btn,.coins-btn{height:38px;border-radius:12px;box-shadow:none}
+  .login-btn{min-width:88px;max-width:128px;padding-inline:9px;font-size:12px;gap:6px}
+  .login-btn svg{display:block!important;width:17px;flex-basis:17px}
+  .coins-btn{min-width:58px;padding-inline:9px;font-size:12px;gap:5px}
+  .coins-btn svg{display:block!important;width:16px}
+  .model-menu{top:112px}
+}
+@media(max-width:390px){
+  .topbar{grid-template-columns:minmax(0,1fr) auto;padding-inline:7px;gap-inline:5px}
+  .logo{width:32px;height:32px;flex-basis:32px}
+  .header-actions{gap:4px}
+  .login-btn{min-width:78px;max-width:104px;padding-inline:7px}
+  .login-btn span{max-width:65px}
+  .coins-btn{min-width:54px;padding-inline:7px}
+  .model-trigger-main>span:last-child{max-width:none}
+}
