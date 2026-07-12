@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content">
+  <title>Nano Banana AI Suite</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/script.js" defer></script>
+</head>
+<body>
+<div id="landingPage" class="landing-page">
+  <div class="landing-header"><button class="action-btn" id="langBtnLanding">AR</button></div>
+  <div class="landing-content">
+    <h1 class="brand-title"><span class="brand-ai">Ai</span><span class="brand-way">Way</span></h1>
+    <p class="landing-desc" id="landDesc">Generate professional media using modern AI technologies</p>
+    <h3 class="site-supports-label" id="landSupport">SITE SUPPORTS</h3>
+    <div class="features-grid"><div class="feature-card" id="featText">AI Chat</div><div class="feature-card" id="featVideo">AI Video</div><div class="feature-card" id="featImg">AI Images</div></div>
+    <button class="login-btn-main" id="btnLogin">Enter App</button>
+  </div>
+</div>
+<header class="header">
+  <button class="header-title plain-button" id="modelMenuButton">
+    <span class="logo-circle">AI</span>
+    <span class="header-copy"><strong id="headerModelName">Loading models…</strong><span class="status-line"><span class="status-dot"></span><span id="modelModeText">Loading</span></span></span>
+    <span class="chevron" id="chevron">⌄</span>
+  </button>
+  <div class="header-actions"><button class="action-btn" id="galleryButton">▦</button><button class="action-btn" id="langBtn">AR</button></div>
+</header>
+<div class="model-menu-overlay" id="modelMenu"></div>
+<main class="chat-container" id="chatContainer">
+  <div class="empty-state" id="emptyState"><div class="empty-logo" id="emptyLogo">✨</div><p id="txtWelcome">Choose a model.<br>Image, Video, or Chat.</p></div>
+</main>
+<section class="input-area">
+  <div class="input-toolbar"><button class="toolbar-btn" id="aspectBtn"><span id="aspectLabel">1:1</span></button><div class="aspect-menu" id="aspectMenu"></div></div>
+  <div class="preview-container" id="previewContainer"><div class="preview-img-box"><img id="previewThumb" class="preview-thumb" alt=""><div class="preview-info" id="previewInfo">Image attached</div></div><button class="remove-img-btn" id="removeImageButton">✕</button></div>
+  <div class="input-row">
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    <button class="attach-btn" id="attachBtn">＋</button>
+    <textarea id="promptInput" class="input-box" rows="1" placeholder="Imagine anything…" dir="auto"></textarea>
+    <button class="send-btn" id="sendBtn">➤</button>
+  </div>
+</section>
+<div class="gallery-modal" id="galleryModal"><div class="gallery-header"><strong id="galleryTitle">My Gallery</strong><button class="gallery-close" id="galleryClose">×</button></div><div class="gallery-content" id="galleryGrid"></div></div>
+</body>
+</html>
