@@ -12,39 +12,48 @@
   <aside class="sidebar" id="sidebar">
     <div class="side-head">
       <strong>المحادثات</strong>
-      <button class="icon mobile-only" id="closeSide" aria-label="إغلاق">✕</button>
+      <button class="icon-btn mobile-only" id="closeSide" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </div>
-    <button class="new-chat" id="newChat">＋ محادثة جديدة</button>
-    <input class="search" id="historySearch" placeholder="بحث في المحادثات">
+    <button class="new-chat" id="newChat">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>محادثة جديدة</span>
+    </button>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="search" id="historySearch" placeholder="بحث في المحادثات">
+    </div>
     <div class="history" id="history"></div>
   </aside>
 
   <main class="main">
     <header class="topbar">
       <div class="brand">
-        <button class="icon mobile-only" id="menuBtn" aria-label="فتح المحادثات">☰</button>
+        <button class="icon-btn mobile-only" id="menuBtn" aria-label="فتح المحادثات">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
         <div class="logo">AI</div>
         <div class="brand-copy"><b>AiWay</b><small>مساعد متعدد النماذج</small></div>
       </div>
 
-      <div class="model-picker-wrap">
-        <label for="modelSelect">النموذج</label>
-        <select id="modelSelect" class="model-select" aria-label="اختيار النموذج">
-          <option value="~openai/gpt-latest" data-label="ChatGPT — أحدث إصدار">ChatGPT — أحدث إصدار</option>
-          <option value="~anthropic/claude-opus-latest" data-label="Claude — أحدث إصدار">Claude — أحدث إصدار</option>
-          <option value="~google/gemini-pro-latest" data-label="Gemini — أحدث إصدار">Gemini — أحدث إصدار</option>
-        </select>
+      <div class="model-picker" id="modelPicker">
+        <button class="model-trigger" id="modelTrigger" aria-haspopup="listbox" aria-expanded="false">
+          <span class="model-trigger-main"><span id="selectedModelIcon"></span><span id="selectedModelName"></span></span>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+        </button>
+        <div class="model-menu" id="modelMenu" role="listbox"></div>
       </div>
 
-      <div class="top-actions">
-        <button class="icon" id="themeBtn" title="الوضع الليلي" aria-label="الوضع الليلي">◐</button>
-        <button class="icon" id="settingsBtn" title="الإعدادات" aria-label="الإعدادات">⚙</button>
-      </div>
+      <button class="coins-btn" id="coinsBtn" aria-label="الرصيد" title="الرصيد">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9.5 9.5c.7-.7 1.6-1 2.6-1 1.3 0 2.4.6 2.4 1.7 0 2.5-5 1.2-5 3.5 0 1.1 1.1 1.8 2.6 1.8 1.1 0 2.1-.4 2.8-1.1M12 6.8v10.4"/></svg>
+        <span id="coinsCount">10</span>
+      </button>
     </header>
 
     <section class="chat" id="chat" aria-live="polite"></section>
-
-    <button class="jump-bottom" id="jumpBottom" aria-label="النزول لآخر المحادثة" title="النزول لآخر المحادثة">↓</button>
+    <button class="jump-bottom" id="jumpBottom" aria-label="النزول لآخر المحادثة" title="النزول لآخر المحادثة">
+      <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/><path d="M12 3v12"/></svg>
+    </button>
 
     <section class="composer-area">
       <div class="preview" id="preview"></div>
@@ -52,14 +61,19 @@
         <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
         <div class="composer-actions">
           <div class="composer-tools">
-            <button class="tool" id="fileBtn" aria-label="إرفاق ملفات">📎 <span>ملفات</span></button>
-            <button class="tool" id="cameraBtn" aria-label="فتح الكاميرا">📷 <span>كاميرا</span></button>
+            <button class="tool-btn" id="fileBtn" aria-label="إرفاق ملفات" title="إرفاق ملفات">
+              <svg viewBox="0 0 24 24"><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.5-9.5a4 4 0 0 1 5.7 5.7l-9.5 9.5a2 2 0 0 1-2.8-2.8l8.8-8.8"/></svg>
+            </button>
+            <button class="tool-btn" id="cameraBtn" aria-label="فتح الكاميرا" title="فتح الكاميرا">
+              <svg viewBox="0 0 24 24"><path d="M14.5 5 13 3h-2L9.5 5H6a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3h-3.5Z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
             <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv" multiple hidden>
             <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
           </div>
-          <button class="send" id="sendBtn">إرسال ↑</button>
+          <button class="send" id="sendBtn"><span>إرسال</span><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
         </div>
       </div>
+      <div class="cost-note" id="costNote"></div>
     </section>
   </main>
 </div>
@@ -67,15 +81,23 @@
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <div class="overlay" id="overlay"></div>
 
-<section class="modal" id="settingsModal">
-  <h3>الإعدادات</h3>
-  <label for="memoryInput">ذاكرة المساعد</label>
-  <textarea id="memoryInput" class="field" rows="6" placeholder="مثال: اسمي أحمد وأفضل الإجابات المختصرة."></textarea>
-  <p>مفتاح OpenRouter محفوظ داخل متغيرات بيئة Vercel فقط.</p>
-  <div class="modal-actions">
-    <button class="secondary closeModal">إغلاق</button>
-    <button class="primary" id="saveSettings">حفظ</button>
+<section class="modal coins-modal" id="coinsModal" aria-modal="true" role="dialog">
+  <div class="modal-head">
+    <div><h3>رصيد الاستخدام</h3><p>رصيد تجريبي محفوظ على هذا الجهاز.</p></div>
+    <button class="icon-btn closeModal" aria-label="إغلاق"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
+  <div class="wallet-card">
+    <span>رصيدك الحالي</span><strong><span id="modalCoins">10</span> كوين</strong>
+  </div>
+  <h4>تكلفة المحاولة</h4>
+  <div class="cost-list" id="costList"></div>
+  <h4>شراء تجريبي</h4>
+  <div class="packages">
+    <button class="package" data-add="25"><span><b>25</b> كوين</span><strong>$2</strong></button>
+    <button class="package featured" data-add="70"><span><b>70</b> كوين</span><strong>$5</strong><small>الأكثر اختيارًا</small></button>
+    <button class="package" data-add="160"><span><b>160</b> كوين</span><strong>$10</strong></button>
+  </div>
+  <p class="demo-warning">الشراء تجريبي فقط ولا توجد عملية دفع حقيقية.</p>
 </section>
 
 <div id="toast" class="toast"></div>
