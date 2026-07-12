@@ -7,3 +7,29 @@
 .drawer-overlay,.overlay{position:fixed;inset:0;display:none}.drawer-overlay{z-index:45;background:rgba(27,15,43,.2)}.overlay{z-index:70;background:rgba(27,15,43,.34)}.drawer-overlay.show,.overlay.show{display:block}.modal{display:none;position:fixed;z-index:80;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,520px);max-height:84dvh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 24px 70px rgba(20,10,35,.35)}.modal.open{display:block;animation:pop .16s ease}.modal h3,.modal h4{margin:0}.modal h4{margin-top:16px;margin-bottom:8px;font-size:14px}.modal p{color:var(--muted);font-size:12px;margin:4px 0}.wallet-card{margin-top:14px;padding:16px;border-radius:16px;color:#fff;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;justify-content:space-between;align-items:center}.wallet-card strong{font-size:22px}.cost-list{display:grid;gap:7px}.cost-row{gap:9px;padding:9px 10px;border:1px solid var(--border);border-radius:12px}.cost-row span:nth-child(2){flex:1;font-weight:700}.cost-row b{font-size:12px;color:var(--p)}.packages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.package{position:relative;min-height:92px;border:1px solid var(--border);border-radius:14px;background:#fcfbfe;color:var(--text);padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}.package:hover{border-color:#b99be5;background:var(--soft)}.package b{font-size:22px;color:var(--p)}.package strong{font-size:15px}.package.featured{border-color:#b99be5;box-shadow:0 8px 24px rgba(124,58,237,.11)}.package small{position:absolute;top:-9px;background:var(--p);color:#fff;border-radius:10px;padding:3px 7px;font-size:9px}.demo-warning{text-align:center;margin-top:12px!important}.toast{position:fixed;z-index:100;left:50%;bottom:90px;transform:translateX(-50%);background:#241735;color:#fff;padding:9px 13px;border-radius:10px;display:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}.mobile-only{display:none}@keyframes blink{50%{opacity:0}}@keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
 @media(max-width:850px){:root{--top:60px}.sidebar{position:fixed;right:0;top:0;height:100%;width:min(92vw,390px);transform:translateX(105%);transition:.25s;box-shadow:var(--shadow)}.sidebar.open{transform:translateX(0)}.mobile-only{display:grid}.topbar{padding:6px 7px;gap:6px}.brand-copy{display:none}.logo{width:34px;height:34px;flex-basis:34px;font-size:12px}.brand{gap:4px}.model-picker{flex:1}.model-trigger{height:40px;border-radius:12px;padding:4px 8px}.model-trigger-main>span:last-child{font-size:12px}.model-trigger .model-brand{width:30px;height:30px;border-radius:9px}.model-trigger .brand-icon{width:18px;height:18px}.coins-btn{height:38px;padding:0 9px;gap:5px;font-size:12px}.coins-btn svg{width:16px}.chat{padding:14px 8px 24px}.bubble{max-width:calc(100% - 40px);padding:12px 13px}.composer-area{padding-inline:8px}.composer{border-radius:17px}.jump-bottom{bottom:110px}.model-menu{position:fixed;top:68px;right:12px;left:12px;width:auto}.packages{grid-template-columns:1fr}.package{min-height:70px;flex-direction:row;justify-content:space-between;padding:12px 16px}.package small{right:12px;top:-8px}.modal{width:calc(100vw - 22px);padding:15px}.wallet-card{padding:14px}}
 @media(max-width:390px){.coins-btn{padding:0 8px}.coins-btn svg{display:none}.model-trigger-main>span:last-child{max-width:132px}.tool-btn{width:38px;height:38px}.send{height:40px;padding:0 12px}.send span{font-size:13px}}
+
+
+/* Pi login and clearer copy actions */
+.header-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.login-btn{height:42px;max-width:190px;display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:21px;background:var(--panel);color:var(--text);padding:0 12px;font-weight:800;transition:.18s;overflow:hidden}
+.login-btn:hover,.login-btn:active{background:var(--soft);border-color:#cdb8e9;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.65;cursor:wait;transform:none}
+.login-btn.signed-in{background:#f4edff;border-color:#d7c1f3;color:#6730b3}
+.login-btn svg{width:18px;flex:0 0 18px}
+.login-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-actions{justify-content:flex-start;padding-top:2px}
+.msg-actions .copy-message{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 11px;border:1px solid #d8c7ec;background:#f8f4ff;color:#6d35b3;border-radius:10px;font-size:12px;font-weight:800;box-shadow:0 3px 9px rgba(81,42,128,.07)}
+.msg-actions .copy-message:hover,.msg-actions .copy-message:active{background:#efe3ff;border-color:#bfa1e4;color:#55218f;transform:translateY(-1px)}
+.msg-actions .copy-message svg{width:16px;height:16px;flex:0 0 16px}
+.user .msg-actions .copy-message{background:rgba(255,255,255,.17);border-color:rgba(255,255,255,.52);color:#fff;box-shadow:none}
+.user .msg-actions .copy-message:hover,.user .msg-actions .copy-message:active{background:rgba(255,255,255,.28);border-color:#fff;color:#fff}
+@media(max-width:850px){
+  .header-actions{gap:4px}
+  .login-btn{height:38px;max-width:92px;padding:0 9px;font-size:12px;gap:5px}
+  .login-btn svg{width:16px;flex-basis:16px}
+}
+@media(max-width:410px){
+  .login-btn{max-width:74px;padding:0 8px}
+  .login-btn svg{display:none}
+  .coins-btn{padding-inline:8px}
+}
