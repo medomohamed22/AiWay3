@@ -43,3 +43,23 @@ Pi.init({ version: "2.0", sandbox: false });
 ```
 
 زر **دخول** يطلب صلاحية `username`، ثم يعرض اسم المستخدم في الشريط العلوي. يجب فتح التطبيق من داخل Pi Browser وربط نطاق Vercel بتطبيقك في Pi Developer Portal. اسم المستخدم المعروض في الواجهة للاستخدام التقديمي؛ أي صلاحيات أو أرصدة مرتبطة بالحساب يجب التحقق منها في الخادم عبر Pi Platform API.
+
+## إصلاح تسجيل دخول Pi
+
+أضف متغيرات Vercel التالية ثم أعد النشر:
+
+```env
+PI_CLIENT_ID=ضع_oAuth_Client_ID_من_Pi_Developer_Portal
+PI_REDIRECT_URI=https://ai-way-3new.vercel.app/
+```
+
+داخل Pi Developer Portal:
+
+1. اجعل Production App URL هو `https://ai-way-3new.vercel.app`.
+2. أكمل App Domain Verification لهذا النطاق.
+3. فعّل Pi Sign-in.
+4. أضف Redirect URI حرفيًا: `https://ai-way-3new.vercel.app/`.
+5. انسخ oAuth Client ID إلى `PI_CLIENT_ID` في Vercel.
+6. نفّذ Redeploy بعد إضافة المتغيرات.
+
+المشروع يستخدم `Pi.signIn` عند وجود Client ID، ويتحقق من الرمز على الخادم عبر `/api/pi-me`. ويوجد fallback إلى `Pi.authenticate` للتطبيقات القديمة.
