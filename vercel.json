@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/chat.js": { "maxDuration": 60 },
-    "api/pi-me.js": { "maxDuration": 15 }
+    "api/pi-me.js": { "maxDuration": 15 },
+    "api/pi-payment.js": { "maxDuration": 15 }
   },
   "headers": [
     {

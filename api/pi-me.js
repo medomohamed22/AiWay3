@@ -37,6 +37,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       uid: data.uid,
       username: data.username || '',
+      walletAddress: data.wallet_address || '',
+      scopes: Array.isArray(data.credentials?.scopes) ? data.credentials.scopes : [],
       validUntil: data.credentials?.valid_until || null
     });
   } catch (error) {

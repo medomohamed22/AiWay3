@@ -92,22 +92,25 @@ async function generate(cost){
 async function send(){if(generating){controller?.abort();return}if(!promptEl.value.trim()&&!pending.length)return;if(coins()<currentModel.cost){openModal('coinsModal');toast('الرصيد غير كافٍ لهذا النموذج');return}ensure();const cost=currentModel.cost;const text=promptEl.value.trim()||'حلّل الملفات المرفقة.';const m={id:uid(),role:'user',text,files:[...pending],time:Date.now()};mutate(c=>{c.messages.push(m);if(c.messages.length===1)c.title=text.slice(0,45)});setCoins(coins()-cost);promptEl.value='';promptEl.style.height='auto';pending=[];renderPreview();render();userPinnedToBottom=true;await generate(cost)}
 function openModal(id){closeSide();document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));const modal=$('#'+id);if(!modal)return;document.body.appendChild(modal);modal.classList.add('open');$('#overlay').classList.add('show');document.body.classList.add('modal-open');requestAnimationFrame(()=>modal.querySelector('button, [tabindex], input')?.focus())}function closeModal(){document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));$('#overlay').classList.remove('show');document.body.classList.remove('modal-open')}function closeSide(){$('#sidebar').classList.remove('open');$('#drawerOverlay').classList.remove('show')}
 function renderCosts(){$('#costList').innerHTML=MODELS.map(m=>`<div class="cost-row"><span class="model-brand">${icon(m.brand)}</span><span>${m.name}</span><b>${m.cost} كوين</b></div>`).join('')}
-function setPiUser(username,uid=''){
-  const clean=String(username||'').trim();
-  if(clean){
-    localStorage.setItem(PI_USER_KEY,clean);
-    if(uid)localStorage.setItem('aiway_pi_uid',String(uid));
-  }else{
-    localStorage.removeItem(PI_USER_KEY);
-    localStorage.removeItem('aiway_pi_uid');
-  }
+function setPiUser(user={}){
+  const clean=String(user.username||'').trim();
+  const wallet=String(user.walletAddress||user.wallet_address||'').trim();
+  const scopes=Array.isArray(user.scopes)?user.scopes:[];
+  if(clean)localStorage.setItem(PI_USER_KEY,clean);else localStorage.removeItem(PI_USER_KEY);
+  if(user.uid)localStorage.setItem('aiway_pi_uid',String(user.uid));
+  if(wallet)localStorage.setItem('aiway_pi_wallet',wallet);
+  localStorage.setItem('aiway_pi_scopes',JSON.stringify(scopes));
   const label=$('#loginLabel');
   label.textContent=clean||'دخول';
   $('#loginBtn').classList.toggle('signed-in',Boolean(clean));
   $('#loginBtn').title=clean?`مسجل باسم ${clean}`:'تسجيل الدخول بحساب Pi';
+  $('#piAccountCard').hidden=!clean;
+  $('#piAccountName').textContent=clean?`@${clean}`:'—';
+  $('#piWalletAddress').textContent=wallet||'عنوان المحفظة غير متاح؛ وافق على الصلاحية من Pi Browser';
+  $('#piPaymentsStatus').textContent=`صلاحية المدفوعات: ${scopes.includes('payments')?'مفعلة':'غير مفعلة'}`;
 }
 
-let piInitialized=false,piConfigPromise=null,loginBusy=false;
+let piInitialized=false,loginBusy=false,piAuth=null;
 function waitForPi(timeout=8000){
   return new Promise((resolve,reject)=>{
     if(window.Pi)return resolve(window.Pi);
@@ -123,14 +126,6 @@ async function initPi(){
   if(!piInitialized){Pi.init({version:'2.0',sandbox:false});piInitialized=true}
   return Pi;
 }
-async function getPiConfig(){
-  if(!piConfigPromise){
-    piConfigPromise=fetch('/api/pi-config',{cache:'no-store'})
-      .then(r=>r.ok?r.json():Promise.reject(new Error('تعذر قراءة إعدادات Pi')))
-      .catch(error=>{piConfigPromise=null;throw error});
-  }
-  return piConfigPromise;
-}
 async function verifyPiToken(accessToken){
   const response=await fetch('/api/pi-me',{
     method:'POST',
@@ -141,34 +136,35 @@ async function verifyPiToken(accessToken){
   if(!response.ok)throw new Error(data.error||'تعذر التحقق من حساب Pi');
   return data;
 }
-function cleanAuthHash(){
-  history.replaceState(null,'',location.pathname+location.search);
+async function paymentRequest(action,paymentId,txid){
+  const response=await fetch('/api/pi-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,paymentId,txid})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||'تعذر تنفيذ عملية Pi');
+  return data;
 }
-async function handlePiOAuthCallback(){
-  if(!location.hash.includes('access_token=')&&!location.hash.includes('error='))return false;
-  const params=new URLSearchParams(location.hash.slice(1));
-  const expected=sessionStorage.getItem('pi_oauth_state');
-  const returned=params.get('state');
-  sessionStorage.removeItem('pi_oauth_state');
-  const error=params.get('error');
-  if(error){cleanAuthHash();throw new Error(error==='access_denied'?'تم رفض إذن تسجيل الدخول.':'لم تكتمل عملية تسجيل الدخول إلى Pi.')}
-  if(!expected||!returned||expected!==returned){cleanAuthHash();throw new Error('تعذر التحقق من جلسة تسجيل الدخول. حاول مرة أخرى.')}
-  const token=params.get('access_token');
-  if(!token){cleanAuthHash();throw new Error('لم يصل رمز تسجيل الدخول من Pi.')}
-  const user=await verifyPiToken(token);
-  cleanAuthHash();
-  setPiUser(user.username,user.uid);
-  toast(`أهلًا ${user.username}`);
+async function completeIncompletePayment(payment){
+  if(payment?.identifier&&payment?.transaction?.txid){
+    const completed=await paymentRequest('complete',payment.identifier,payment.transaction.txid);
+    creditCompletedPayment(completed);
+    toast('تم استكمال دفعة Pi المعلقة');
+  }
+}
+function creditCompletedPayment(payment){
+  if(!payment?.status?.developer_completed||!payment?.status?.transaction_verified)return false;
+  const credit=Number(payment.metadata?.credit),allowed=new Set([25,70,160]);
+  if(!allowed.has(credit))return false;
+  const receiptKey=`aiway_pi_payment_${payment.identifier}`;
+  if(!localStorage.getItem(receiptKey)){setCoins(coins()+credit);localStorage.setItem(receiptKey,'1')}
   return true;
 }
-async function legacyPiAuthenticate(Pi){
-  const auth=await Pi.authenticate(['username'],payment=>{
-    console.warn('Incomplete Pi payment found',payment?.identifier||'');
-  });
+async function authenticatePi(Pi){
+  const auth=await Pi.authenticate(['username','payments','wallet_address'],completeIncompletePayment);
   if(!auth?.accessToken)throw new Error('لم يصل رمز الدخول من Pi.');
-  const user=await verifyPiToken(auth.accessToken);
-  setPiUser(user.username,user.uid);
-  toast(`أهلًا ${user.username}`);
+  const verified=await verifyPiToken(auth.accessToken);
+  piAuth={...auth,user:{...auth.user,...verified,walletAddress:auth.user?.wallet_address||verified.walletAddress||''}};
+  sessionStorage.setItem('aiway_pi_access_token',auth.accessToken);
+  setPiUser(piAuth.user);
+  return piAuth;
 }
 async function loginWithPi(){
   if(loginBusy)return;
@@ -177,17 +173,10 @@ async function loginWithPi(){
   btn.disabled=true;$('#loginLabel').textContent='جاري الدخول…';
   try{
     const Pi=await initPi();
-    const config=await getPiConfig().catch(()=>({}));
-    if(config.clientId&&config.redirectUri&&typeof Pi.signIn==='function'){
-      const state=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
-      sessionStorage.setItem('pi_oauth_state',state);
-      Pi.signIn({clientId:config.clientId,redirectUri:config.redirectUri,scopes:['username'],state});
-      return;
-    }
-    await legacyPiAuthenticate(Pi);
+    const auth=await authenticatePi(Pi);
+    toast(`أهلًا ${auth.user.username}`);
   }catch(error){
     console.error('Pi login error',error);
-    setPiUser(localStorage.getItem(PI_USER_KEY)||'');
     const message=String(error?.message||'تعذر تسجيل الدخول بحساب Pi');
     toast(message==='Authentication failed'
       ? 'راجع توثيق النطاق ورابط التطبيق داخل Pi Developer Portal.'
@@ -197,8 +186,29 @@ async function loginWithPi(){
     if(!localStorage.getItem(PI_USER_KEY))$('#loginLabel').textContent=oldLabel==='جاري الدخول…'?'دخول':oldLabel;
   }
 }
-chat.addEventListener('scroll',updateJump,{passive:true});jumpBottom.onclick=()=>scrollBottom(true);$('#modelTrigger').onclick=e=>{e.stopPropagation();const open=$('#modelMenu').classList.toggle('open');$('#modelTrigger').setAttribute('aria-expanded',String(open))};document.addEventListener('click',closeModelMenu);$('#modelPicker').onclick=e=>e.stopPropagation();$('#coinsBtn').onclick=()=>openModal('coinsModal');$('#loginBtn').onclick=loginWithPi;$('#menuBtn').onclick=()=>{$('#sidebar').classList.add('open');$('#drawerOverlay').classList.add('show')};$('#closeSide').onclick=closeSide;$('#drawerOverlay').onclick=closeSide;$('#overlay').onclick=closeModal;document.querySelectorAll('.closeModal').forEach(b=>b.onclick=closeModal);document.querySelectorAll('.package').forEach(b=>b.onclick=()=>{setCoins(coins()+Number(b.dataset.add));closeModal();toast('تمت إضافة الكوينز تجريبيًا')});$('#newChat').onclick=()=>{activeId=null;ensure();render();renderHistory();closeSide()};$('#historySearch').oninput=renderHistory;sendBtn.onclick=send;promptEl.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};promptEl.oninput=()=>{promptEl.style.height='auto';promptEl.style.height=Math.min(promptEl.scrollHeight,130)+'px'};$('#fileBtn').onclick=()=>$('#fileInput').click();$('#cameraBtn').onclick=()=>$('#cameraInput').click();$('#fileInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};$('#cameraInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};
-setPiUser(localStorage.getItem(PI_USER_KEY)||'');
+async function buyWithPi(button){
+  if(button.disabled)return;
+  button.disabled=true;
+  try{
+    const Pi=await initPi();
+    if(!piAuth)await authenticatePi(Pi);
+    const amount=Number(button.dataset.pi),credit=Number(button.dataset.add),orderId=uid();
+    await new Promise((resolve,reject)=>Pi.createPayment({amount,memo:`شراء ${credit} كوين من AiWay`,metadata:{orderId,credit}}, {
+      onReadyForServerApproval:paymentId=>paymentRequest('approve',paymentId).catch(error=>{
+        console.error('Pi approval failed; SDK may retry',error);toast('تعذر اعتماد الدفعة، تجري إعادة المحاولة…');
+      }),
+      onReadyForServerCompletion:(paymentId,txid)=>paymentRequest('complete',paymentId,txid).then(payment=>{
+        if(!creditCompletedPayment(payment))return reject(new Error('لم يتم التحقق من دفعة Pi.'));
+        resolve();
+      }).catch(error=>{console.error('Pi completion failed; SDK may retry',error)}),
+      onCancel:()=>reject(new Error('تم إلغاء الدفع.')),
+      onError:error=>reject(error)
+    }));
+    closeModal();toast('تم الدفع وإضافة الكوينز بنجاح');
+  }catch(error){console.error(error);toast(error?.message||'تعذر إتمام الدفع عبر Pi')}
+  finally{button.disabled=false}
+}
+chat.addEventListener('scroll',updateJump,{passive:true});jumpBottom.onclick=()=>scrollBottom(true);$('#modelTrigger').onclick=e=>{e.stopPropagation();const open=$('#modelMenu').classList.toggle('open');$('#modelTrigger').setAttribute('aria-expanded',String(open))};document.addEventListener('click',closeModelMenu);$('#modelPicker').onclick=e=>e.stopPropagation();$('#coinsBtn').onclick=()=>openModal('coinsModal');$('#loginBtn').onclick=loginWithPi;$('#menuBtn').onclick=()=>{$('#sidebar').classList.add('open');$('#drawerOverlay').classList.add('show')};$('#closeSide').onclick=closeSide;$('#drawerOverlay').onclick=closeSide;$('#overlay').onclick=closeModal;document.querySelectorAll('.closeModal').forEach(b=>b.onclick=closeModal);document.querySelectorAll('.package').forEach(b=>b.onclick=()=>buyWithPi(b));$('#newChat').onclick=()=>{activeId=null;ensure();render();renderHistory();closeSide()};$('#historySearch').oninput=renderHistory;sendBtn.onclick=send;promptEl.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};promptEl.oninput=()=>{promptEl.style.height='auto';promptEl.style.height=Math.min(promptEl.scrollHeight,130)+'px'};$('#fileBtn').onclick=()=>$('#fileInput').click();$('#cameraBtn').onclick=()=>$('#cameraInput').click();$('#fileInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};$('#cameraInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};
+setPiUser({username:localStorage.getItem(PI_USER_KEY)||'',uid:localStorage.getItem('aiway_pi_uid')||'',walletAddress:localStorage.getItem('aiway_pi_wallet')||'',scopes:JSON.parse(localStorage.getItem('aiway_pi_scopes')||'[]')});
 initPi().catch(()=>{});
-handlePiOAuthCallback().catch(error=>{console.error(error);toast(error.message||'تعذر تسجيل الدخول إلى Pi')});
 if(localStorage.getItem(COINS_KEY)===null)localStorage.setItem(COINS_KEY,'10');setCoins(coins());renderModelPicker();renderCosts();const all=chats();activeId=all.sort((a,b)=>b.time-a.time)[0]?.id||null;ensure();renderHistory();render();
