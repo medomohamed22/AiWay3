@@ -130,3 +130,40 @@
   .coins-btn{min-width:54px;padding-inline:7px}
   .model-trigger-main>span:last-child{max-width:none}
 }
+
+/* Reliable centered dialog and Pi login states */
+body.modal-open{overflow:hidden;touch-action:none}
+.overlay{position:fixed!important;inset:0!important;z-index:9998!important;background:rgba(30,17,45,.38)!important}
+.modal{
+  position:fixed!important;
+  z-index:9999!important;
+  left:50%!important;
+  top:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:min(92vw,520px)!important;
+  max-height:min(82dvh,720px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  margin:0!important;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+.modal.open{
+  display:block!important;
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+  animation:modalCenterIn .16s ease-out both!important;
+}
+@keyframes modalCenterIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.96)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+.login-btn.is-loading svg{animation:loginPulse .8s ease-in-out infinite alternate}
+@keyframes loginPulse{to{opacity:.45;transform:scale(.88)}}
+@media(max-width:560px){
+  .modal{width:calc(100vw - 24px)!important;max-height:78dvh!important;border-radius:20px!important}
+}
