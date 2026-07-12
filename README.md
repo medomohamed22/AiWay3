@@ -43,7 +43,7 @@ Pi.init({ version: '2.0', sandbox: false });
 تسجيل الدخول يتم بالطريقة الرسمية `Pi.authenticate` ويطلب الصلاحيات الثلاث:
 
 ```js
-Pi.authenticate(['username', 'payments', 'wallet_address'], onIncompletePaymentFound)
+Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
 ```
 
 يتم التحقق من access token في الخادم عبر `GET https://api.minepi.com/v2/me`. وتنفّذ المدفوعات دورة Pi الكاملة: إنشاء العملية في SDK، ثم `/approve` و`/complete` من الخادم فقط.
@@ -64,7 +64,7 @@ SUPABASE_SERVICE_ROLE_KEY=ضع_Service_Role_Key_هنا
 
 1. اجعل Production App URL مطابقًا لرابط Vercel حرفيًا وبـ HTTPS.
 2. أكمل Domain Verification وضع ملف التحقق في المسار المطلوب.
-3. فعّل `username` و`payments` و`wallet_address` للتطبيق.
+3. فعّل `username` و`payments` للتطبيق. تم اعتماد نفس نطاقات تسجيل الدخول المستخدمة في مستودع `medomohamed22/test` لتجنب فشل الدخول بسبب `wallet_address` غير المفعّل.
 4. استخدم Server API Key الخاص ببيئة الإنتاج، وليس Sandbox.
 5. افتح التطبيق من داخل Pi Browser؛ تسجيل Pi لا يعمل كدخول عادي من Chrome.
 

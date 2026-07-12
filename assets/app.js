@@ -139,12 +139,14 @@ async function verifyPiToken(accessToken){
 }
 async function paymentRequest(action,paymentId,txid){
   const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token')||'';
-  const response=await fetch('/api/pi-payment',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({action,paymentId,txid})});
+  const response=await fetch(`/api/${action}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({paymentId,txid})});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||'تعذر تنفيذ عملية Pi');
   return data;
 }
+const pendingIncompletePayments=[];
 async function completeIncompletePayment(payment){
+  if(!piAuth?.accessToken){pendingIncompletePayments.push(payment);return}
   if(payment?.identifier&&payment?.transaction?.txid){
     const completed=await paymentRequest('complete',payment.identifier,payment.transaction.txid);
     creditCompletedPayment(completed);
@@ -160,20 +162,18 @@ function creditCompletedPayment(payment){
   return true;
 }
 async function authenticatePi(Pi){
-  let auth;
-  try{auth=await Pi.authenticate(['username','payments','wallet_address'],completeIncompletePayment)}
-  catch(firstError){
-    console.warn('Full Pi scopes failed; retrying without wallet_address',firstError);
-    try{auth=await Pi.authenticate(['username','payments'],completeIncompletePayment);toast('تم الدخول، لكن فعّل wallet_address في Pi Developer Portal لإظهار المحفظة')}
-    catch{throw firstError}
-  }
+  const auth=await Pi.authenticate(['username','payments'],completeIncompletePayment);
   if(!auth?.accessToken)throw new Error('لم يصل رمز الدخول من Pi.');
-  const verified=await verifyPiToken(auth.accessToken);
-  piAuth={...auth,user:{...auth.user,...verified,walletAddress:auth.user?.wallet_address||verified.walletAddress||''}};
+  piAuth={...auth,user:{...auth.user,scopes:['username','payments']}};
   sessionStorage.setItem('aiway_pi_access_token',auth.accessToken);
-  if(Number.isFinite(Number(verified.coinBalance)))setCoins(Number(verified.coinBalance));
-  if(verified.databaseWarning)console.warn('Pi login succeeded, but Supabase sync needs attention:',verified.databaseWarning);
   setPiUser(piAuth.user);
+  for(const payment of pendingIncompletePayments.splice(0))completeIncompletePayment(payment).catch(console.error);
+  verifyPiToken(auth.accessToken).then(verified=>{
+    piAuth.user={...piAuth.user,...verified,walletAddress:verified.walletAddress||''};
+    if(Number.isFinite(Number(verified.coinBalance)))setCoins(Number(verified.coinBalance));
+    setPiUser(piAuth.user);
+    if(verified.databaseWarning)console.warn('Pi login succeeded, but Supabase sync needs attention:',verified.databaseWarning);
+  }).catch(error=>console.warn('Pi login succeeded; optional profile/database verification failed:',error));
   scheduleSync();
   return piAuth;
 }
@@ -187,8 +187,8 @@ function scheduleSync(){
 function piLoginMessage(error){
   const raw=String(error?.message||error||'');
   if(!window.Pi)return 'Pi SDK لم يتم تحميله. افتح رابط الإنتاج داخل Pi Browser.';
-  if(/permission|scope|not.?allowed|unauthorized/i.test(raw))return 'فعّل صلاحيات username وpayments وwallet_address ووثّق نطاق الإنتاج في Pi Developer Portal.';
-  if(/cancel|denied/i.test(raw))return 'تم رفض صلاحيات Pi. أعد المحاولة ووافق على الصلاحيات الثلاث.';
+  if(/permission|scope|not.?allowed|unauthorized/i.test(raw))return 'فعّل صلاحيات username وpayments ووثّق نطاق الإنتاج في Pi Developer Portal.';
+  if(/cancel|denied/i.test(raw))return 'تم رفض صلاحيات Pi. أعد المحاولة ووافق على صلاحيات اسم المستخدم والمدفوعات.';
   if(/network|fetch|timeout/i.test(raw))return 'تعذر الاتصال بخدمة Pi. افتح التطبيق داخل Pi Browser وتحقق من الإنترنت.';
   return `${raw||'فشل تسجيل الدخول'} — تأكد من Production URL وDomain Verification وافتح الموقع داخل Pi Browser.`;
 }

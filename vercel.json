@@ -3,6 +3,8 @@
     "api/chat.js": { "maxDuration": 60 },
     "api/pi-me.js": { "maxDuration": 15 },
     "api/pi-payment.js": { "maxDuration": 15 },
+    "api/approve.js": { "maxDuration": 15 },
+    "api/complete.js": { "maxDuration": 15 },
     "api/pi-price.js": { "maxDuration": 15 },
     "api/sync.js": { "maxDuration": 30 }
   },
