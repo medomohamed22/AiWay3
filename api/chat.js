@@ -3,10 +3,11 @@ const MAX_BODY_BYTES = 14 * 1024 * 1024;
 const MAX_MESSAGES = 80;
 const MAX_FILES_PER_MESSAGE = 6;
 const MAX_DATA_URL_CHARS = 12 * 1024 * 1024;
-const ALLOWED_MODELS = new Set([
-  "~openai/gpt-latest",
-  "~anthropic/claude-opus-latest",
-  "~google/gemini-pro-latest"
+const MODELS = new Map([
+  ["openai/gpt-5.6-sol", "GPT-5.6 Sol"],
+  ["anthropic/claude-fable-5", "Claude Fable 5"],
+  ["google/gemini-3.5-flash", "Gemini 3.5 Flash"],
+  ["deepseek/deepseek-chat", "DeepSeek V3"]
 ]);
 const ALLOWED_DATA_TYPES = new Set(["image/jpeg","image/png","image/webp","image/gif","application/pdf"]);
 
@@ -26,10 +27,10 @@ export default async function handler(req,res){
   const apiKey=process.env.OPENROUTER_API_KEY;if(!apiKey)return res.status(500).json({error:"OPENROUTER_API_KEY غير مضبوط على الخادم."});
   const declaredLength=Number(req.headers["content-length"]||0);if(declaredLength>MAX_BODY_BYTES)return res.status(413).json({error:"حجم الطلب أكبر من الحد المسموح."});
   try{
-    const body=req.body||{};const model=cleanText(body.model,180);const modelName=cleanText(body.modelName,100)||"النموذج المختار";
-    if(!ALLOWED_MODELS.has(model))return res.status(400).json({error:"النموذج غير مسموح."});
-    const messages=normalizeMessages(body.messages);const memory=cleanText(body.memory,4000);
-    const systemText=`أنت المساعد الذي يعمل الآن بواسطة ${modelName}. لا تستخدم اسم AiWay كهوية لك. عندما يسألك المستخدم عن اسمك أو نوع النموذج، قل إنك ${modelName}. أجب بالعربية ما لم يطلب المستخدم لغة أخرى. استخدم Markdown منظماً بعناوين وفقرات وقوائم عند الحاجة، ولا تدّع قراءة ملف لم يصلك.${memory?`\nذاكرة المستخدم:\n${memory}`:""}`;
+    const body=req.body||{};const model=cleanText(body.model,180);const modelName=MODELS.get(model);
+    if(!modelName)return res.status(400).json({error:"النموذج غير مسموح."});
+    const messages=normalizeMessages(body.messages);
+    const systemText=`أنت مساعد يعمل بواسطة ${modelName}. عندما يسألك المستخدم عن اسمك أو نوع النموذج، اذكر ${modelName} بوضوح. لا تقدم نفسك باسم AiWay. أجب بالعربية ما لم يطلب المستخدم لغة أخرى. استخدم Markdown منظماً بعناوين وفقرات وقوائم عند الحاجة، ولا تدّع قراءة ملف لم يصلك.`;
     const upstream=await fetch(OPENROUTER_CHAT_URL,{method:"POST",headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json","HTTP-Referer":process.env.APP_URL||"http://localhost:3000","X-OpenRouter-Title":process.env.APP_NAME||"AiWay"},body:JSON.stringify({model,stream:true,messages:[{role:"system",content:systemText},...messages],temperature:.7,max_tokens:8192,plugins:[{id:"file-parser"}]}),signal:AbortSignal.timeout(55000)});
     if(!upstream.ok){const text=await upstream.text();let message=`OpenRouter error ${upstream.status}`;try{message=JSON.parse(text)?.error?.message||message}catch{}return res.status(upstream.status).json({error:message})}
     res.statusCode=200;res.setHeader("Content-Type","text/event-stream; charset=utf-8");res.setHeader("Cache-Control","no-cache, no-transform");res.setHeader("Connection","keep-alive");res.flushHeaders?.();
