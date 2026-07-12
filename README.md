@@ -46,17 +46,19 @@ Pi.init({ version: '2.0', sandbox: false });
 Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
 ```
 
-يتم التحقق من access token في الخادم عبر `GET https://api.minepi.com/v2/me`. وتنفّذ المدفوعات دورة Pi الكاملة: إنشاء العملية في SDK، ثم `/approve` و`/complete` من الخادم فقط.
+يتم التحقق من access token في الخادم عبر `GET https://api.minepi.com/v2/me`. وتنفّذ المدفوعات دورة Pi الكاملة مثل هيكلة Donate Way: إنشاء العملية في SDK، ثم `/api/pi/approve` و`/api/pi/complete` من الخادم فقط.
 
 أضف متغير الخادم السري التالي في Vercel ثم نفّذ Redeploy:
 
 ```env
-PI_API_KEY=ضع_Server_API_Key_من_Pi_Developer_Portal
+PI_SECRET_KEY=ضع_Server_API_Key_من_Pi_Developer_Portal
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=ضع_Service_Role_Key_هنا
 ```
 
-شغّل ملف `supabase-schema.sql` المرفق في Supabase SQL Editor مرة واحدة. لا تضع `PI_API_KEY` أو `SUPABASE_SERVICE_ROLE_KEY` داخل `assets/app.js` أو أي ملف يصل إلى المتصفح. يستخرج الخادم دومين التطبيق تلقائيًا من طلب Vercel، ويستخدم `PI_API_KEY` الموجود أصلًا لتوقيع عروض الأسعار؛ لذلك لا تحتاج إلى `APP_URL` أو `ALLOWED_ORIGINS` أو `PI_QUOTE_SECRET`.
+شغّل ملف `supabase-schema.sql` المرفق في Supabase SQL Editor مرة واحدة. لا تضع `PI_SECRET_KEY` أو `SUPABASE_SERVICE_ROLE_KEY` داخل `assets/app.js` أو أي ملف يصل إلى المتصفح. يدعم المشروع أيضًا الاسم القديم `PI_API_KEY` كـ fallback. يستخرج الخادم دومين التطبيق تلقائيًا ويستخدم مفتاح Pi الموجود أصلًا لتوقيع عروض الأسعار؛ لذلك لا تحتاج إلى `APP_URL` أو `ALLOWED_ORIGINS` أو `PI_QUOTE_SECRET`.
+
+تم فصل كاشف الأخطاء في `assets/error-reporter.js`. أي خطأ غير معالج أو فشل في تسجيل Pi أو الدفع أو مزامنة Supabase يفتح نافذة تحتوي على الوقت والسياق والرسالة وstack trace والرابط وبيانات المتصفح، مع زر لنسخ التفاصيل كاملة.
 
 الباقات ثابتة بالدولار ($2 و$5 و$10). قبل الدفع يجلب الخادم سعر `PI-USDT` الحالي من OKX، يحسب كمية Pi، ويوقّع عرض السعر لمدة 5 دقائق. الخادم يرفض أي مبلغ أو باقة أو توقيع تم تعديله.
 

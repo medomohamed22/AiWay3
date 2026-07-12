@@ -1,3 +1,5 @@
+import { installErrorReporter, reportError } from './error-reporter.js';
+
 const $=s=>document.querySelector(s),chat=$('#chat'),promptEl=$('#prompt'),sendBtn=$('#sendBtn'),preview=$('#preview'),jumpBottom=$('#jumpBottom');
 const STORE='aiway_chats_v4',MODEL_KEY='aiway_model_v4',COINS_KEY='aiway_coins_v1',PI_USER_KEY='aiway_pi_username';
 const MAX_FILE_BYTES=8*1024*1024,MAX_FILES=6,ALLOWED=new Set(['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv']);
@@ -82,7 +84,7 @@ async function generate(cost){
     if(frameId)cancelAnimationFrame(frameId);
     setCoins(coins()+cost);
     if(err.name==='AbortError')e.remove();
-    else content.innerHTML=`<p style="color:var(--danger)">${esc(err.message)}</p>`;
+    else{content.innerHTML=`<p style="color:var(--danger)">${esc(err.message)}</p>`;reportError(err,'Chat request failed')}
   }finally{
     generating=false;controller=null;
     sendBtn.classList.remove('stop');
@@ -107,7 +109,6 @@ function setPiUser(user={}){
   $('#loginBtn').title=clean?`مسجل باسم ${clean}`:'تسجيل الدخول بحساب Pi';
   $('#piAccountCard').hidden=!clean;
   $('#piAccountName').textContent=clean?`@${clean}`:'—';
-  $('#piWalletAddress').textContent=wallet||'عنوان المحفظة غير متاح؛ وافق على الصلاحية من Pi Browser';
   $('#piPaymentsStatus').textContent=`صلاحية المدفوعات: ${scopes.includes('payments')?'مفعلة':'غير مفعلة'}`;
 }
 
@@ -139,9 +140,9 @@ async function verifyPiToken(accessToken){
 }
 async function paymentRequest(action,paymentId,txid){
   const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token')||'';
-  const response=await fetch(`/api/${action}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({paymentId,txid})});
+  const response=await fetch(`/api/pi/${action}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({paymentId,txid})});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(data.error||'تعذر تنفيذ عملية Pi');
+  if(!response.ok)throw new Error(`Pi ${action} failed (${response.status})\n${typeof data.error==='string'?data.error:JSON.stringify(data.error||data,null,2)}`);
   return data;
 }
 const pendingIncompletePayments=[];
@@ -182,7 +183,7 @@ function scheduleSync(){
   clearTimeout(syncTimer);
   const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token');
   if(!token)return;
-  syncTimer=setTimeout(()=>fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({chats:chats()})}).catch(error=>console.error('Supabase sync failed',error)),800);
+  syncTimer=setTimeout(async()=>{try{const response=await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({chats:chats()})});if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(`Supabase sync failed (${response.status})\n${data.error||JSON.stringify(data)}`)}}catch(error){reportError(error,'Supabase conversation sync')}},800);
 }
 function piLoginMessage(error){
   const raw=String(error?.message||error||'');
@@ -202,7 +203,7 @@ async function loginWithPi(){
     const auth=await authenticatePi(Pi);
     toast(`أهلًا ${auth.user.username}`);
   }catch(error){
-    console.error('Pi login error',error);
+    reportError(error,'Pi login failed');
     toast(piLoginMessage(error));
   }finally{
     loginBusy=false;btn.disabled=false;
@@ -232,10 +233,11 @@ async function buyWithPi(button){
       onError:error=>reject(error)
     }));
     closeModal();toast('تم الدفع وإضافة الكوينز بنجاح');
-  }catch(error){console.error(error);toast(error?.message||'تعذر إتمام الدفع عبر Pi')}
+  }catch(error){reportError(error,'Pi token purchase failed');toast('تعذر إتمام الدفع. افتح تفاصيل الخطأ لنسخ الرسالة.')}
   finally{button.disabled=false}
 }
 chat.addEventListener('scroll',updateJump,{passive:true});jumpBottom.onclick=()=>scrollBottom(true);$('#modelTrigger').onclick=e=>{e.stopPropagation();const open=$('#modelMenu').classList.toggle('open');$('#modelTrigger').setAttribute('aria-expanded',String(open))};document.addEventListener('click',closeModelMenu);$('#modelPicker').onclick=e=>e.stopPropagation();$('#coinsBtn').onclick=()=>openModal('coinsModal');$('#loginBtn').onclick=loginWithPi;$('#menuBtn').onclick=()=>{$('#sidebar').classList.add('open');$('#drawerOverlay').classList.add('show')};$('#closeSide').onclick=closeSide;$('#drawerOverlay').onclick=closeSide;$('#overlay').onclick=closeModal;document.querySelectorAll('.closeModal').forEach(b=>b.onclick=closeModal);document.querySelectorAll('.package').forEach(b=>b.onclick=()=>buyWithPi(b));$('#newChat').onclick=()=>{activeId=null;ensure();render();renderHistory();closeSide()};$('#historySearch').oninput=renderHistory;sendBtn.onclick=send;promptEl.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};promptEl.oninput=()=>{promptEl.style.height='auto';promptEl.style.height=Math.min(promptEl.scrollHeight,130)+'px'};$('#fileBtn').onclick=()=>$('#fileInput').click();$('#cameraBtn').onclick=()=>$('#cameraInput').click();$('#fileInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};$('#cameraInput').onchange=e=>{readFiles(e.target.files);e.target.value=''};
 setPiUser({username:localStorage.getItem(PI_USER_KEY)||'',uid:localStorage.getItem('aiway_pi_uid')||'',walletAddress:localStorage.getItem('aiway_pi_wallet')||'',scopes:JSON.parse(localStorage.getItem('aiway_pi_scopes')||'[]')});
+installErrorReporter(toast);
 initPi().catch(()=>{});
 if(localStorage.getItem(COINS_KEY)===null)localStorage.setItem(COINS_KEY,'10');setCoins(coins());renderModelPicker();renderCosts();const all=chats();activeId=all.sort((a,b)=>b.time-a.time)[0]?.id||null;ensure();renderHistory();render();

@@ -167,3 +167,8 @@ body.modal-open{overflow:hidden;touch-action:none}
 @media(max-width:560px){
   .modal{width:calc(100vw - 24px)!important;max-height:78dvh!important;border-radius:20px!important}
 }
+.error-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.72);backdrop-filter:blur(8px)}
+.error-modal.show{display:flex}.error-dialog{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.error-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}.error-dialog-head h3{color:var(--danger);margin:0 0 4px}.error-dialog-head p{color:var(--muted);margin:0}
+#errorDetails{width:100%;min-height:260px;resize:vertical;direction:ltr;text-align:left;white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:14px;padding:14px;font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}
+.error-copy{width:100%;margin-top:12px}.error-dialog .icon-btn{flex:0 0 auto}

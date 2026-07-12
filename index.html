@@ -98,7 +98,6 @@
   </div>
   <div class="wallet-card" id="piAccountCard" hidden>
     <span>حساب Pi</span><strong id="piAccountName">—</strong>
-    <small id="piWalletAddress">—</small>
     <small id="piPaymentsStatus">صلاحية المدفوعات: غير مفعلة</small>
   </div>
   <h4>تكلفة المحاولة</h4>
@@ -109,7 +108,17 @@
     <button class="package featured" data-add="70"><span><b>70</b> كوين</span><strong>$5</strong><small>الأكثر اختيارًا</small></button>
     <button class="package" data-add="160"><span><b>160</b> كوين</span><strong>$10</strong></button>
   </div>
-  <p class="demo-warning">يتم الدفع الحقيقي عبر Pi Wallet على الشبكة الرئيسية.</p>
+</section>
+
+<section class="error-modal" id="errorModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="errorTitle">
+  <div class="error-dialog">
+    <div class="error-dialog-head">
+      <div><h3 id="errorTitle">تفاصيل الخطأ</h3><p>انسخ الرسالة كاملة عند طلب الدعم.</p></div>
+      <button class="icon-btn" id="closeErrorModal" aria-label="إغلاق"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <textarea id="errorDetails" readonly spellcheck="false"></textarea>
+    <button class="send error-copy" id="copyErrorBtn"><span>نسخ تفاصيل الخطأ</span></button>
+  </div>
 </section>
 
 <div id="toast" class="toast"></div>
