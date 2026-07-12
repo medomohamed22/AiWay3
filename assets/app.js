@@ -19,7 +19,7 @@ const esc=(s='')=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'
 const coins=()=>Number(localStorage.getItem(COINS_KEY)??10);function setCoins(v){v=Math.max(0,Math.floor(v));localStorage.setItem(COINS_KEY,String(v));$('#coinsCount').textContent=v;$('#modalCoins').textContent=v}
 function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
 function md(s=''){const b=[];s=s.replace(/```([\w+-]*)\n?([\s\S]*?)```/g,(_,l,c)=>{const k=`@@${b.length}@@`;b.push(`<div class="code"><div class="code-head"><span>${esc(l||'code')}</span><button class="copyCode">نسخ</button></div><pre><code>${esc(c.trim())}</code></pre></div>`);return k});let o=esc(s).replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>');let h='',list='';for(const line of o.split('\n')){let m=line.match(/^\s*[-*] (.+)$/);if(m){if(list!=='ul'){if(list)h+=`</${list}>`;h+='<ul>';list='ul'}h+=`<li>${m[1]}</li>`;continue}m=line.match(/^\s*\d+\. (.+)$/);if(m){if(list!=='ol'){if(list)h+=`</${list}>`;h+='<ol>';list='ol'}h+=`<li>${m[1]}</li>`;continue}if(list){h+=`</${list}>`;list=''}if(!line.trim())continue;h+=/^<h/.test(line)?line:`<p>${line}</p>`}if(list)h+=`</${list}>`;b.forEach((x,i)=>h=h.replace(`@@${i}@@`,x));return h}
-function getActive(){return chats().find(c=>c.id===activeId)}function ensure(){if(getActive())return;const a=chats(),c={id:uid(),title:'محادثة جديدة',time:Date.now(),messages:[]};a.push(c);save(a);activeId=c.id}function mutate(fn){const a=chats(),i=a.findIndex(c=>c.id===activeId);if(i<0)return;fn(a[i]);a[i].time=Date.now();save(a);renderHistory()}function format(t){return new Intl.DateTimeFormat('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(t))}
+function getActive(){return chats().find(c=>c.id===activeId)}function ensure(){if(getActive())return;const a=chats(),c={id:uid(),title:'محادثة جديدة',time:Date.now(),messages:[]};a.push(c);save(a);activeId=c.id}function mutate(fn){const a=chats(),i=a.findIndex(c=>c.id===activeId);if(i<0)return;fn(a[i]);a[i].time=Date.now();save(a);renderHistory();scheduleSync()}function format(t){return new Intl.DateTimeFormat('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(t))}
 function renderModelPicker(){const menu=$('#modelMenu');menu.innerHTML=MODELS.map(m=>`<button class="model-option ${m.id===currentModel.id?'active':''}" data-model="${m.id}" role="option"><span class="model-brand">${icon(m.brand)}</span><span class="model-copy"><b>${m.name}</b><small>${m.company} • ${m.cost} كوين للمحاولة</small></span><span class="check">✓</span></button>`).join('');$('#selectedModelIcon').innerHTML=icon(currentModel.brand);$('#selectedModelName').textContent=currentModel.name;$('#costNote').textContent=`تكلفة المحاولة بالنموذج الحالي: ${currentModel.cost} كوين`;menu.querySelectorAll('[data-model]').forEach(btn=>btn.onclick=()=>{currentModel=MODELS.find(m=>m.id===btn.dataset.model);localStorage.setItem(MODEL_KEY,currentModel.id);renderModelPicker();closeModelMenu()})}
 function closeModelMenu(){$('#modelMenu').classList.remove('open');$('#modelTrigger').setAttribute('aria-expanded','false')}
 function welcome(){chat.innerHTML=`<div class="welcome"><div class="welcome-inner"><div class="orb">✦</div><h1>أهلًا بك في AiWay</h1><p>اختر النموذج المناسب وابدأ المحادثة.</p><div class="quick"><button data-q="لخّص لي هذا الموضوع: ">تلخيص</button><button data-q="اكتب لي كود احترافي لـ ">برمجة</button><button data-q="اشرح لي ببساطة: ">شرح مبسط</button></div></div></div>`;chat.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{promptEl.value=b.dataset.q;promptEl.focus()});updateJump()}
@@ -137,7 +137,8 @@ async function verifyPiToken(accessToken){
   return data;
 }
 async function paymentRequest(action,paymentId,txid){
-  const response=await fetch('/api/pi-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,paymentId,txid})});
+  const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token')||'';
+  const response=await fetch('/api/pi-payment',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({action,paymentId,txid})});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||'تعذر تنفيذ عملية Pi');
   return data;
@@ -154,17 +155,40 @@ function creditCompletedPayment(payment){
   const credit=Number(payment.metadata?.credit),allowed=new Set([25,70,160]);
   if(!allowed.has(credit))return false;
   const receiptKey=`aiway_pi_payment_${payment.identifier}`;
-  if(!localStorage.getItem(receiptKey)){setCoins(coins()+credit);localStorage.setItem(receiptKey,'1')}
+  if(!localStorage.getItem(receiptKey)){setCoins(Number.isFinite(Number(payment.coin_balance))?Number(payment.coin_balance):coins()+credit);localStorage.setItem(receiptKey,'1')}
   return true;
 }
 async function authenticatePi(Pi){
-  const auth=await Pi.authenticate(['username','payments','wallet_address'],completeIncompletePayment);
+  let auth;
+  try{auth=await Pi.authenticate(['username','payments','wallet_address'],completeIncompletePayment)}
+  catch(firstError){
+    console.warn('Full Pi scopes failed; retrying without wallet_address',firstError);
+    try{auth=await Pi.authenticate(['username','payments'],completeIncompletePayment);toast('تم الدخول، لكن فعّل wallet_address في Pi Developer Portal لإظهار المحفظة')}
+    catch{throw firstError}
+  }
   if(!auth?.accessToken)throw new Error('لم يصل رمز الدخول من Pi.');
   const verified=await verifyPiToken(auth.accessToken);
   piAuth={...auth,user:{...auth.user,...verified,walletAddress:auth.user?.wallet_address||verified.walletAddress||''}};
   sessionStorage.setItem('aiway_pi_access_token',auth.accessToken);
+  if(Number.isFinite(Number(verified.coinBalance)))setCoins(Number(verified.coinBalance));
   setPiUser(piAuth.user);
+  scheduleSync();
   return piAuth;
+}
+let syncTimer;
+function scheduleSync(){
+  clearTimeout(syncTimer);
+  const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token');
+  if(!token)return;
+  syncTimer=setTimeout(()=>fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({chats:chats()})}).catch(error=>console.error('Supabase sync failed',error)),800);
+}
+function piLoginMessage(error){
+  const raw=String(error?.message||error||'');
+  if(!window.Pi)return 'Pi SDK لم يتم تحميله. افتح رابط الإنتاج داخل Pi Browser.';
+  if(/permission|scope|not.?allowed|unauthorized/i.test(raw))return 'فعّل صلاحيات username وpayments وwallet_address ووثّق نطاق الإنتاج في Pi Developer Portal.';
+  if(/cancel|denied/i.test(raw))return 'تم رفض صلاحيات Pi. أعد المحاولة ووافق على الصلاحيات الثلاث.';
+  if(/network|fetch|timeout/i.test(raw))return 'تعذر الاتصال بخدمة Pi. افتح التطبيق داخل Pi Browser وتحقق من الإنترنت.';
+  return `${raw||'فشل تسجيل الدخول'} — تأكد من Production URL وDomain Verification وافتح الموقع داخل Pi Browser.`;
 }
 async function loginWithPi(){
   if(loginBusy)return;
@@ -177,10 +201,7 @@ async function loginWithPi(){
     toast(`أهلًا ${auth.user.username}`);
   }catch(error){
     console.error('Pi login error',error);
-    const message=String(error?.message||'تعذر تسجيل الدخول بحساب Pi');
-    toast(message==='Authentication failed'
-      ? 'راجع توثيق النطاق ورابط التطبيق داخل Pi Developer Portal.'
-      : message);
+    toast(piLoginMessage(error));
   }finally{
     loginBusy=false;btn.disabled=false;
     if(!localStorage.getItem(PI_USER_KEY))$('#loginLabel').textContent=oldLabel==='جاري الدخول…'?'دخول':oldLabel;
@@ -192,8 +213,12 @@ async function buyWithPi(button){
   try{
     const Pi=await initPi();
     if(!piAuth)await authenticatePi(Pi);
-    const amount=Number(button.dataset.pi),credit=Number(button.dataset.add),orderId=uid();
-    await new Promise((resolve,reject)=>Pi.createPayment({amount,memo:`شراء ${credit} كوين من AiWay`,metadata:{orderId,credit}}, {
+    const credit=Number(button.dataset.add),orderId=uid();
+    const quoteResponse=await fetch(`/api/pi-price?credit=${credit}`,{cache:'no-store'});
+    const quote=await quoteResponse.json().catch(()=>({}));
+    if(!quoteResponse.ok)throw new Error(quote.error||'تعذر تسعير Pi');
+    toast(`$${quote.usd} = ${quote.amountPi} Pi — سعر Pi: $${Number(quote.piUsd).toFixed(4)}`);
+    await new Promise((resolve,reject)=>Pi.createPayment({amount:quote.amountPi,memo:`شراء ${credit} كوين بقيمة $${quote.usd}`,metadata:{orderId,credit,quote:quote.quote,usd:quote.usd,piUsd:quote.piUsd}}, {
       onReadyForServerApproval:paymentId=>paymentRequest('approve',paymentId).catch(error=>{
         console.error('Pi approval failed; SDK may retry',error);toast('تعذر اعتماد الدفعة، تجري إعادة المحاولة…');
       }),

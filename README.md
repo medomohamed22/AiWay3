@@ -54,6 +54,19 @@ Pi.authenticate(['username', 'payments', 'wallet_address'], onIncompletePaymentF
 
 ```env
 PI_API_KEY=ضع_Server_API_Key_من_Pi_Developer_Portal
+PI_QUOTE_SECRET=ضع_قيمة_عشوائية_سرية_32_حرفا_على_الأقل
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=ضع_Service_Role_Key_هنا
 ```
 
-لا تضع `PI_API_KEY` داخل `assets/app.js` أو أي ملف يصل إلى المتصفح. داخل Pi Developer Portal اضبط Production App URL، وأكمل Domain Verification، وفعّل الصلاحيات والمدفوعات للتطبيق. يجب اختبار تسجيل الدخول والدفع من داخل Pi Browser.
+شغّل ملف `supabase-schema.sql` المرفق في Supabase SQL Editor مرة واحدة. لا تضع `PI_API_KEY` أو `PI_QUOTE_SECRET` أو `SUPABASE_SERVICE_ROLE_KEY` داخل `assets/app.js` أو أي ملف يصل إلى المتصفح.
+
+الباقات ثابتة بالدولار ($2 و$5 و$10). قبل الدفع يجلب الخادم سعر `PI-USDT` الحالي من OKX، يحسب كمية Pi، ويوقّع عرض السعر لمدة 5 دقائق. الخادم يرفض أي مبلغ أو باقة أو توقيع تم تعديله.
+
+داخل Pi Developer Portal:
+
+1. اجعل Production App URL مطابقًا لرابط Vercel حرفيًا وبـ HTTPS.
+2. أكمل Domain Verification وضع ملف التحقق في المسار المطلوب.
+3. فعّل `username` و`payments` و`wallet_address` للتطبيق.
+4. استخدم Server API Key الخاص ببيئة الإنتاج، وليس Sandbox.
+5. افتح التطبيق من داخل Pi Browser؛ تسجيل Pi لا يعمل كدخول عادي من Chrome.
