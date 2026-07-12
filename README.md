@@ -70,4 +70,6 @@ SUPABASE_SERVICE_ROLE_KEY=ضع_Service_Role_Key_هنا
 4. استخدم Server API Key الخاص ببيئة الإنتاج، وليس Sandbox.
 5. افتح التطبيق من داخل Pi Browser؛ تسجيل Pi لا يعمل كدخول عادي من Chrome.
 
+إذا أعاد Pi SDK الخطأ `Authentication failed`، يحاول المشروع تسجيل الدخول بصلاحية `username` فقط حتى تعمل المحادثات. عند شراء التوكن يعاد طلب `payments`. هذا fallback لا يغني عن إكمال App Checklist: يجب أن يكون Production URL هو `https://ai-way-3new.vercel.app/`، وأن ينجح Domain Verification، ويتم ربط App Wallet، وتفعيل `username` و`payments` لمشروع Mainnet غير Legacy.
+
 لا يسمح المشروع بإرسال الرسائل قبل تسجيل Pi. يتم تطبيق المنع في الواجهة وفي `/api/chat`، حيث يتحقق الخادم من access token عبر Pi Platform API قبل الاتصال بـ OpenRouter. فشل مزامنة Supabase لا يلغي تسجيل Pi؛ راجع Vercel Function Logs لمعرفة رسالة المزامنة وتأكد من متغيرات Supabase ومن تشغيل ملف SQL.

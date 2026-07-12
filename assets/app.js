@@ -162,10 +162,17 @@ function creditCompletedPayment(payment){
   if(!localStorage.getItem(receiptKey)){setCoins(Number.isFinite(Number(payment.coin_balance))?Number(payment.coin_balance):coins()+credit);localStorage.setItem(receiptKey,'1')}
   return true;
 }
-async function authenticatePi(Pi){
-  const auth=await Pi.authenticate(['username','payments'],completeIncompletePayment);
+async function authenticatePi(Pi,allowUsernameFallback=true){
+  let auth,grantedScopes=['username','payments'];
+  try{auth=await Pi.authenticate(['username','payments'],completeIncompletePayment)}
+  catch(error){
+    if(!allowUsernameFallback||!/Authentication failed/i.test(String(error?.message||error)))throw error;
+    auth=await Pi.authenticate(['username'],completeIncompletePayment);
+    grantedScopes=['username'];
+    toast('تم تسجيل الدخول. صلاحية payments تحتاج التفعيل في Pi Developer Portal.');
+  }
   if(!auth?.accessToken)throw new Error('لم يصل رمز الدخول من Pi.');
-  piAuth={...auth,user:{...auth.user,scopes:['username','payments']}};
+  piAuth={...auth,user:{...auth.user,scopes:grantedScopes}};
   sessionStorage.setItem('aiway_pi_access_token',auth.accessToken);
   setPiUser(piAuth.user);
   for(const payment of pendingIncompletePayments.splice(0))completeIncompletePayment(payment).catch(console.error);
@@ -188,6 +195,7 @@ function scheduleSync(){
 function piLoginMessage(error){
   const raw=String(error?.message||error||'');
   if(!window.Pi)return 'Pi SDK لم يتم تحميله. افتح رابط الإنتاج داخل Pi Browser.';
+  if(/Authentication failed/i.test(raw))return 'Pi Platform رفض المصادقة. راجع App Checklist في develop.pi: Production URL يجب أن يكون https://ai-way-3new.vercel.app/، وأكمل Domain Verification، واربط App Wallet، وفعّل username وpayments، وتأكد أن المشروع Mainnet وليس Legacy/Testnet.';
   if(/permission|scope|not.?allowed|unauthorized/i.test(raw))return 'فعّل صلاحيات username وpayments ووثّق نطاق الإنتاج في Pi Developer Portal.';
   if(/cancel|denied/i.test(raw))return 'تم رفض صلاحيات Pi. أعد المحاولة ووافق على صلاحيات اسم المستخدم والمدفوعات.';
   if(/network|fetch|timeout/i.test(raw))return 'تعذر الاتصال بخدمة Pi. افتح التطبيق داخل Pi Browser وتحقق من الإنترنت.';
@@ -203,8 +211,9 @@ async function loginWithPi(){
     const auth=await authenticatePi(Pi);
     toast(`أهلًا ${auth.user.username}`);
   }catch(error){
-    reportError(error,'Pi login failed');
-    toast(piLoginMessage(error));
+    const message=piLoginMessage(error),diagnostic=new Error(`${error?.message||error}\n\nالتشخيص: ${message}`);
+    diagnostic.stack=`${diagnostic.stack}\n\nOriginal Pi SDK stack:\n${error?.stack||'not available'}`;
+    reportError(diagnostic,'Pi login failed');toast(message);
   }finally{
     loginBusy=false;btn.disabled=false;
     if(!localStorage.getItem(PI_USER_KEY))$('#loginLabel').textContent=oldLabel==='جاري الدخول…'?'دخول':oldLabel;
@@ -215,7 +224,7 @@ async function buyWithPi(button){
   button.disabled=true;
   try{
     const Pi=await initPi();
-    if(!piAuth)await authenticatePi(Pi);
+    if(!piAuth||!piAuth.user?.scopes?.includes('payments'))await authenticatePi(Pi,false);
     const credit=Number(button.dataset.add),orderId=uid();
     const quoteResponse=await fetch(`/api/pi-price?credit=${credit}`,{cache:'no-store'});
     const quote=await quoteResponse.json().catch(()=>({}));
