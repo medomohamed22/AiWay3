@@ -14,7 +14,7 @@ function verifyQuote(payment, allowExpired=false) {
     return null;
   }
   const [payload,signature]=parts;
-  const expected=crypto.createHmac('sha256',process.env.PI_QUOTE_SECRET||'').update(payload).digest('hex');
+  const expected=crypto.createHmac('sha256',process.env.PI_API_KEY||'').update(payload).digest('hex');
   if(signature.length!==expected.length||!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected)))return null;
   let parsed;try{parsed=JSON.parse(Buffer.from(payload,'base64url').toString('utf8'))}catch{return null}
   const credit=Number(parsed.credit),usd=Number(parsed.usd),piPrice=Number(parsed.piUsd),amountPi=Number(parsed.amountPi),expiresAt=Number(parsed.expiresAt);

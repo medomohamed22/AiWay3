@@ -2,18 +2,16 @@ const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const CACHE_SECONDS = 60 * 30;
 
 function allowedOrigin(req) {
-  const configured = (process.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map(x => x.trim())
-    .filter(Boolean);
-
-  if (!configured.length) return "*";
   const origin = req.headers.origin || "";
-  return configured.includes(origin) ? origin : configured[0];
+  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  const ownOrigin = host ? `${proto}://${host}` : "";
+  return origin && origin === ownOrigin ? origin : ownOrigin;
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin(req));
+  const origin = allowedOrigin(req);
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Vary", "Origin");
 
   if (req.method !== "GET") {

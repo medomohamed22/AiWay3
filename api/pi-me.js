@@ -14,11 +14,13 @@ export default async function handler(req, res) {
     if (!response.ok) return res.status(response.status === 401 ? 401 : 502).json({
       error: response.status === 401 ? 'انتهت جلسة Pi أو لم تكتمل الموافقة على الصلاحيات.' : 'تعذر التحقق من حساب Pi.'
     });
-    const dbUser = await ensureUser(data);
+    let dbUser = null, databaseWarning = '';
+    try { dbUser = await ensureUser(data); }
+    catch (dbError) { databaseWarning = dbError.message || 'Supabase sync failed'; console.error('Pi user database sync failed:', dbError); }
     return res.status(200).json({
-      id: dbUser.id, uid: data.uid, username: data.username || '', coinBalance: dbUser.coin_balance,
+      id: dbUser?.id || null, uid: data.uid, username: data.username || '', coinBalance: dbUser?.coin_balance ?? null,
       walletAddress: data.wallet_address || '', scopes: data.credentials?.scopes || [],
-      validUntil: data.credentials?.valid_until || null
+      validUntil: data.credentials?.valid_until || null, databaseWarning
     });
   } catch (error) {
     return res.status(error.status || 502).json({ error: error.message || 'تعذر الاتصال بخدمة Pi أو Supabase.' });

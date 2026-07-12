@@ -47,7 +47,8 @@ async function generate(cost){
     if(userPinnedToBottom)scrollBottom(false);else updateJump();
   };
   try{
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({model:currentModel.id,messages:serialize(getActive().messages)})});
+    const token=piAuth?.accessToken||sessionStorage.getItem('aiway_pi_access_token')||'';
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},signal:controller.signal,body:JSON.stringify({model:currentModel.id,messages:serialize(getActive().messages)})});
     if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||`خطأ ${res.status}`)}
     const rd=res.body.getReader(),dec=new TextDecoder();
     while(true){
@@ -89,7 +90,7 @@ async function generate(cost){
     updateJump();
   }
 }
-async function send(){if(generating){controller?.abort();return}if(!promptEl.value.trim()&&!pending.length)return;if(coins()<currentModel.cost){openModal('coinsModal');toast('الرصيد غير كافٍ لهذا النموذج');return}ensure();const cost=currentModel.cost;const text=promptEl.value.trim()||'حلّل الملفات المرفقة.';const m={id:uid(),role:'user',text,files:[...pending],time:Date.now()};mutate(c=>{c.messages.push(m);if(c.messages.length===1)c.title=text.slice(0,45)});setCoins(coins()-cost);promptEl.value='';promptEl.style.height='auto';pending=[];renderPreview();render();userPinnedToBottom=true;await generate(cost)}
+async function send(){if(generating){controller?.abort();return}if(!promptEl.value.trim()&&!pending.length)return;if(!piAuth?.accessToken){toast('يجب تسجيل الدخول بحساب Pi قبل إرسال أي رسالة.');await loginWithPi();return}if(coins()<currentModel.cost){openModal('coinsModal');toast('الرصيد غير كافٍ لهذا النموذج');return}ensure();const cost=currentModel.cost;const text=promptEl.value.trim()||'حلّل الملفات المرفقة.';const m={id:uid(),role:'user',text,files:[...pending],time:Date.now()};mutate(c=>{c.messages.push(m);if(c.messages.length===1)c.title=text.slice(0,45)});setCoins(coins()-cost);promptEl.value='';promptEl.style.height='auto';pending=[];renderPreview();render();userPinnedToBottom=true;await generate(cost)}
 function openModal(id){closeSide();document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));const modal=$('#'+id);if(!modal)return;document.body.appendChild(modal);modal.classList.add('open');$('#overlay').classList.add('show');document.body.classList.add('modal-open');requestAnimationFrame(()=>modal.querySelector('button, [tabindex], input')?.focus())}function closeModal(){document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));$('#overlay').classList.remove('show');document.body.classList.remove('modal-open')}function closeSide(){$('#sidebar').classList.remove('open');$('#drawerOverlay').classList.remove('show')}
 function renderCosts(){$('#costList').innerHTML=MODELS.map(m=>`<div class="cost-row"><span class="model-brand">${icon(m.brand)}</span><span>${m.name}</span><b>${m.cost} كوين</b></div>`).join('')}
 function setPiUser(user={}){
@@ -171,6 +172,7 @@ async function authenticatePi(Pi){
   piAuth={...auth,user:{...auth.user,...verified,walletAddress:auth.user?.wallet_address||verified.walletAddress||''}};
   sessionStorage.setItem('aiway_pi_access_token',auth.accessToken);
   if(Number.isFinite(Number(verified.coinBalance)))setCoins(Number(verified.coinBalance));
+  if(verified.databaseWarning)console.warn('Pi login succeeded, but Supabase sync needs attention:',verified.databaseWarning);
   setPiUser(piAuth.user);
   scheduleSync();
   return piAuth;
