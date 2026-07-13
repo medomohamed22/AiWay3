@@ -132,7 +132,18 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 function showToast(msg,type="success"){const t=$("toast");t.textContent=msg;t.className="toast show "+(type==="error"?"error":"");setTimeout(()=>t.className="toast",3000)}
 function openModal(id){$(id).classList.add("show")}function closeModal(id){$(id).classList.remove("show")}
-function showError(e,extra={}){$("debugOutput").textContent=JSON.stringify({time:new Date().toISOString(),message:e?.message||String(e),stack:e?.stack||null,...extra},null,2);openModal("debugModal")}
+function showError(e,extra={}){
+  $("debugOutput").textContent=JSON.stringify({
+    time:new Date().toISOString(),
+    message:e?.message||String(e),
+    stack:e?.stack||null,
+    details:e?.details||null,
+    storagePath:e?.storagePath||null,
+    row:e?.row||null,
+    ...extra
+  },null,2);
+  openModal("debugModal");
+}
 async function copyDebug(){await navigator.clipboard.writeText($("debugOutput").textContent);showToast("تم النسخ")}
 async function boot(){
   renderCategories();
@@ -300,8 +311,23 @@ async function compressAndUpload(file,index,total){
   const compressed=await imageCompression(file,{maxSizeMB:.8,maxWidthOrHeight:1200,useWebWorker:true,fileType:"image/jpeg",initialQuality:.82});
   const path=`${profile.id}/${Date.now()}_${crypto.randomUUID()}.jpg`;
   $("uploadText").textContent=`رفع الصورة ${index+1} من ${total}`;$("uploadProgress").style.width=`${Math.round(index/total*100)}%`;
-  const {error}=await db.storage.from("ad-images").upload(path,compressed,{contentType:"image/jpeg",upsert:false,cacheControl:"31536000"});if(error)throw error;
-  const {data}=db.storage.from("ad-images").getPublicUrl(path);return data.publicUrl
+  const {data:uploadData,error:uploadError}=await db.storage
+    .from("ad-images")
+    .upload(path,compressed,{
+      contentType:"image/jpeg",
+      upsert:false,
+      cacheControl:"31536000"
+    });
+
+  if(uploadError){
+    const err=new Error("STORAGE_UPLOAD_FAILED: "+uploadError.message);
+    err.details=uploadError;
+    err.storagePath=path;
+    throw err;
+  }
+
+  const {data}=db.storage.from("ad-images").getPublicUrl(path);
+  return data.publicUrl
 }
 $("adForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!profile)return loginPi();const btn=$("publishBtn");btn.disabled=true;$("uploadProgressWrap").classList.remove("hidden");
@@ -309,8 +335,23 @@ $("adForm").addEventListener("submit",async e=>{
     for(let i=0;i<selectedFiles.length;i++)uploaded.push(await compressAndUpload(selectedFiles[i],i,selectedFiles.length));
     $("uploadProgress").style.width="100%";$("uploadText").textContent="جارٍ حفظ الإعلان...";
     const row={owner_id:profile.id,title:$("adTitle").value.trim(),description:$("adDescription").value.trim(),category:$("adCategory").value,city:$("adCity").value,price:Number($("adPrice").value),images:uploaded,image_url:uploaded[0]||null};
-    const {error}=await db.from("ads").insert(row);if(error)throw error;
-    e.target.reset();selectedFiles=[];renderPreviews();closeModal("addModal");showToast("تم نشر الإعلان بنجاح");await loadAds();
+    const {error:insertError}=await db.from("ads").insert(row);
+    if(insertError){
+      const err=new Error("AD_INSERT_FAILED: "+insertError.message);
+      err.details=insertError;
+      err.row={
+        ...row,
+        images:Array.isArray(row.images)?row.images.length:0
+      };
+      throw err;
+    }
+
+    e.target.reset();
+    selectedFiles=[];
+    renderPreviews();
+    closeModal("addModal");
+    showToast("تم نشر الإعلان بنجاح");
+    await loadAds();
   }catch(err){showError(err,{stage:"upload_or_insert",selectedFiles:selectedFiles.map(f=>({name:f.name,size:f.size,type:f.type}))})}
   finally{btn.disabled=false;$("uploadProgressWrap").classList.add("hidden");$("uploadProgress").style.width="0%"}
 })
