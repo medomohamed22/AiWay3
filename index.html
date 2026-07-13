@@ -1,1040 +1,195 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#002f34" />
-  <title>Pi Market - سوق الإعلانات</title>
-
-  <!-- Pi Network SDK -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pi Market</title>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
   <style>
-    :root {
-      --primary: #002f34;
-      --primary-2: #00474f;
-      --accent: #ffce32;
-      --surface: #ffffff;
-      --page: #f5f7f7;
-      --text: #163035;
-      --muted: #6f7d80;
-      --line: #d8dfe0;
-      --danger: #c62828;
-      --success: #147d64;
-      --shadow: 0 10px 30px rgba(0, 47, 52, .10);
-      --radius: 18px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      font-family: Tahoma, Arial, sans-serif;
-      color: var(--text);
-      background: var(--page);
-    }
-
-    button,
-    input,
-    select,
-    textarea {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .container {
-      width: min(1180px, calc(100% - 28px));
-      margin-inline: auto;
-    }
-
-    .topbar {
-      background: var(--primary);
-      color: #fff;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, .13);
-    }
-
-    .topbar-inner {
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 900;
-      font-size: 22px;
-      white-space: nowrap;
-    }
-
-    .brand-mark {
-      width: 42px;
-      height: 42px;
-      border-radius: 13px;
-      display: grid;
-      place-items: center;
-      color: var(--primary);
-      background: var(--accent);
-      font-size: 24px;
-    }
-
-    .search-wrap {
-      flex: 1;
-      display: flex;
-      gap: 8px;
-    }
-
-    .search-wrap input,
-    .search-wrap select {
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      border-radius: 10px;
-      padding: 12px 14px;
-      background: #fff;
-      color: var(--text);
-    }
-
-    .search-wrap input {
-      flex: 1;
-    }
-
-    .search-btn,
-    .login-btn,
-    .add-btn,
-    .primary-btn,
-    .secondary-btn {
-      border: 0;
-      border-radius: 10px;
-      padding: 12px 18px;
-      font-weight: 800;
-      transition: .2s ease;
-    }
-
-    .search-btn,
-    .add-btn {
-      background: var(--accent);
-      color: var(--primary);
-    }
-
-    .login-btn {
-      background: transparent;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,.45);
-    }
-
-    .login-btn:hover,
-    .add-btn:hover,
-    .search-btn:hover,
-    .primary-btn:hover,
-    .secondary-btn:hover {
-      transform: translateY(-1px);
-      filter: brightness(.98);
-    }
-
-    .hero {
-      padding: 54px 0 38px;
-      background:
-        radial-gradient(circle at 15% 20%, rgba(255,206,50,.22), transparent 30%),
-        linear-gradient(135deg, #003d43, #002f34);
-      color: #fff;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.3fr .7fr;
-      align-items: center;
-      gap: 30px;
-    }
-
-    .hero h1 {
-      margin: 0 0 14px;
-      font-size: clamp(34px, 5vw, 62px);
-      line-height: 1.12;
-    }
-
-    .hero p {
-      margin: 0 0 22px;
-      color: #dce8e9;
-      font-size: 18px;
-      line-height: 1.9;
-    }
-
-    .hero-card {
-      border-radius: 26px;
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.18);
-      padding: 24px;
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-    }
-
-    .hero-card strong {
-      display: block;
-      font-size: 44px;
-      color: var(--accent);
-      margin-bottom: 7px;
-    }
-
-    .section {
-      padding: 34px 0;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-
-    .section-head h2 {
-      margin: 0;
-      font-size: 27px;
-    }
-
-    .categories {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 12px;
-    }
-
-    .category {
-      border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 16px;
-      padding: 17px 10px;
-      text-align: center;
-      transition: .2s ease;
-    }
-
-    .category:hover,
-    .category.active {
-      transform: translateY(-3px);
-      border-color: var(--primary);
-      box-shadow: var(--shadow);
-    }
-
-    .category-icon {
-      font-size: 31px;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .toolbar select {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
-
-    .ads-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
-    }
-
-    .ad-card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: 0 7px 20px rgba(0, 47, 52, .05);
-      transition: .2s ease;
-      position: relative;
-    }
-
-    .ad-card:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--shadow);
-    }
-
-    .ad-image {
-      height: 195px;
-      width: 100%;
-      object-fit: cover;
-      display: block;
-      background: #e9eeee;
-    }
-
-    .favorite {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 0;
-      background: rgba(255,255,255,.94);
-      font-size: 21px;
-      box-shadow: 0 5px 15px rgba(0,0,0,.12);
-    }
-
-    .favorite.active {
-      color: #e53935;
-    }
-
-    .ad-body {
-      padding: 15px;
-    }
-
-    .ad-price {
-      font-size: 21px;
-      font-weight: 900;
-      color: var(--primary);
-      margin-bottom: 8px;
-    }
-
-    .ad-title {
-      margin: 0 0 12px;
-      font-size: 17px;
-      min-height: 42px;
-      line-height: 1.5;
-    }
-
-    .ad-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .empty {
-      grid-column: 1 / -1;
-      padding: 45px;
-      background: #fff;
-      border: 1px dashed var(--line);
-      border-radius: var(--radius);
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: rgba(0, 25, 28, .68);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-box {
-      width: min(560px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      background: #fff;
-      border-radius: 22px;
-      padding: 24px;
-      box-shadow: 0 30px 80px rgba(0,0,0,.25);
-    }
-
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .modal-head h3 {
-      margin: 0;
-      font-size: 24px;
-    }
-
-    .close-btn {
-      border: 0;
-      background: #eef2f2;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      font-size: 18px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field label {
-      font-weight: 800;
-      font-size: 14px;
-    }
-
-    .field input,
-    .field select,
-    .field textarea {
-      width: 100%;
-      padding: 12px 13px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      outline: none;
-      background: #fff;
-    }
-
-    .field textarea {
-      min-height: 105px;
-      resize: vertical;
-    }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(0,47,52,.08);
-    }
-
-    .primary-btn {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    .secondary-btn {
-      background: #edf2f2;
-      color: var(--primary);
-    }
-
-    .message {
-      display: none;
-      margin: 12px 0;
-      padding: 11px 13px;
-      border-radius: 10px;
-      font-size: 14px;
-    }
-
-    .message.show {
-      display: block;
-    }
-
-    .message.error {
-      color: #8f1d1d;
-      background: #ffebee;
-    }
-
-    .message.success {
-      color: #0d604d;
-      background: #e5f5ef;
-    }
-
-    .user-chip {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      color: #fff;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .user-chip.show {
-      display: flex;
-    }
-
-    .avatar {
-      width: 37px;
-      height: 37px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: var(--accent);
-      color: var(--primary);
-      font-weight: 900;
-    }
-
-    footer {
-      background: var(--primary);
-      color: #c9d8da;
-      padding: 26px 0;
-      margin-top: 32px;
-      text-align: center;
-    }
-
-    @media (max-width: 980px) {
-      .categories {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .ads-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .hero-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .topbar-inner {
-        flex-wrap: wrap;
-        padding: 12px 0;
-      }
-
-      .search-wrap {
-        order: 3;
-        width: 100%;
-      }
-    }
-
-    @media (max-width: 620px) {
-      .categories {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .ads-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .field.full {
-        grid-column: auto;
-      }
-
-      .search-wrap select {
-        display: none;
-      }
-
-      .add-btn {
-        padding-inline: 12px;
-      }
-
-      .user-chip span:last-child {
-        display: none;
-      }
-    }
+    :root{--p:#002f34;--p2:#00474f;--a:#ffce32;--bg:#f4f7f7;--line:#d8e0e1;--muted:#6c797c;--danger:#b3261e}
+    *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial;background:var(--bg);color:#173438}
+    button,input,select,textarea{font:inherit}.container{width:min(1180px,calc(100% - 26px));margin:auto}
+    header{position:sticky;top:0;z-index:30;background:var(--p);color:#fff;box-shadow:0 5px 18px #0002}
+    .nav{min-height:72px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:900;display:flex;align-items:center;gap:9px}
+    .logo{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--a);color:var(--p);font-size:26px}
+    .search{flex:1;display:flex;gap:8px}.search input,.search select{border:0;border-radius:10px;padding:12px;min-width:0}.search input{flex:1}
+    button{border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer}.yellow{background:var(--a);color:var(--p)}
+    .outline{background:transparent;color:#fff;border:1px solid #ffffff66}.user{display:none;align-items:center;gap:8px}
+    .user.show{display:flex}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:var(--p);font-weight:900}
+    .hero{padding:55px 0;background:linear-gradient(135deg,#00474f,#002f34);color:#fff}.hero h1{font-size:clamp(34px,6vw,64px);margin:0 0 12px}.hero p{max-width:720px;line-height:1.9;color:#dce8e9}
+    section{padding:32px 0}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.head h2{margin:0}
+    .cats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.cat{background:#fff;border:1px solid var(--line);padding:18px 8px}.cat.active{border-color:var(--p);box-shadow:0 8px 25px #002f3414}
+    .cat span{display:block;font-size:28px;margin-bottom:6px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:0 7px 22px #002f340d}.card img{width:100%;height:190px;object-fit:cover;background:#e5ebeb}
+    .body{padding:14px}.price{font-size:21px;font-weight:900;color:var(--p)}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+    .modal{display:none;position:fixed;inset:0;background:#001b1dcc;z-index:80;padding:15px;align-items:center;justify-content:center}.modal.show{display:flex}
+    .box{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:22px}.mh{display:flex;justify-content:space-between;align-items:center}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.full{grid-column:1/-1}
+    .field input,.field select,.field textarea{border:1px solid var(--line);border-radius:10px;padding:12px}.field textarea{min-height:100px}.primary{background:var(--p);color:#fff}
+    .chat-layout{display:grid;grid-template-columns:210px 1fr;gap:12px}.convos{border-left:1px solid var(--line);max-height:470px;overflow:auto}
+    .convo{width:100%;text-align:right;background:#fff;border-bottom:1px solid var(--line);border-radius:0}.convo.active{background:#e9f2f2}
+    .messages{height:380px;overflow:auto;background:#f6f8f8;padding:12px;border-radius:12px}.bubble{max-width:80%;background:#fff;padding:9px 12px;border-radius:12px;margin:8px 0}
+    .bubble.mine{margin-right:auto;background:#d9f4eb}.send{display:flex;gap:8px;margin-top:10px}.send input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px}
+    .empty{text-align:center;padding:35px;background:#fff;border-radius:15px;color:var(--muted)}.error{color:var(--danger)}
+    @media(max-width:900px){.cats{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.search{order:3;width:100%}}
+    @media(max-width:600px){.cats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.chat-layout{grid-template-columns:1fr}.convos{border:0;max-height:130px}}
   </style>
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div class="brand">
-        <span class="brand-mark">π</span>
-        <span>Pi Market</span>
-      </div>
-
-      <div class="search-wrap">
-        <input id="searchInput" type="search" placeholder="ابحث عن سيارة، هاتف، عقار..." />
-        <select id="cityFilter" aria-label="اختيار المدينة">
-          <option value="">كل المدن</option>
-          <option>القاهرة</option>
-          <option>الجيزة</option>
-          <option>الإسكندرية</option>
-          <option>المنصورة</option>
-          <option>طنطا</option>
-        </select>
-        <button class="search-btn" id="searchBtn">بحث</button>
-      </div>
-
-      <div id="userChip" class="user-chip">
-        <span class="avatar" id="avatar">P</span>
-        <span id="usernameLabel"></span>
-      </div>
-
-      <button id="loginBtn" class="login-btn">تسجيل الدخول بـ Pi</button>
-      <button id="addAdBtn" class="add-btn">+ أضف إعلانًا</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="container hero-grid">
-        <div>
-          <h1>بيع واشترِ بسهولة باستخدام مجتمع Pi</h1>
-          <p>
-            منصة إعلانات مبوبة شبيهة بـ OLX لعرض المنتجات والعقارات والسيارات
-            والخدمات، مع تسجيل دخول مباشر عبر Pi Network.
-          </p>
-          <button class="add-btn" id="heroAddBtn">انشر إعلانك الآن</button>
-        </div>
-
-        <div class="hero-card">
-          <strong id="adsCount">0</strong>
-          <span>إعلانات متاحة الآن</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <h2>تصفح الأقسام</h2>
-        </div>
-        <div class="categories" id="categories"></div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <h2>أحدث الإعلانات</h2>
-          <div class="toolbar">
-            <select id="sortSelect">
-              <option value="newest">الأحدث أولًا</option>
-              <option value="low">السعر: الأقل</option>
-              <option value="high">السعر: الأعلى</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="ads-grid" id="adsGrid"></div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="container">
-      Pi Market © 2026 — نموذج واجهة أولي يعمل بملف واحد.
-    </div>
-  </footer>
-
-  <!-- نافذة إضافة إعلان -->
-  <div class="modal" id="adModal" aria-hidden="true">
-    <div class="modal-box">
-      <div class="modal-head">
-        <h3>إضافة إعلان جديد</h3>
-        <button class="close-btn" data-close="adModal">✕</button>
-      </div>
-
-      <div id="adMessage" class="message"></div>
-
-      <form id="adForm" class="form-grid">
-        <div class="field full">
-          <label for="adTitle">عنوان الإعلان</label>
-          <input id="adTitle" required maxlength="80" placeholder="مثال: آيفون بحالة ممتازة" />
-        </div>
-
-        <div class="field">
-          <label for="adCategory">القسم</label>
-          <select id="adCategory" required></select>
-        </div>
-
-        <div class="field">
-          <label for="adCity">المدينة</label>
-          <select id="adCity" required>
-            <option value="">اختر المدينة</option>
-            <option>القاهرة</option>
-            <option>الجيزة</option>
-            <option>الإسكندرية</option>
-            <option>المنصورة</option>
-            <option>طنطا</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="adPrice">السعر بالـ Pi</label>
-          <input id="adPrice" type="number" min="0" step="0.01" required placeholder="100" />
-        </div>
-
-        <div class="field">
-          <label for="adImage">رابط الصورة</label>
-          <input id="adImage" type="url" placeholder="https://example.com/image.jpg" />
-        </div>
-
-        <div class="field full">
-          <label for="adDescription">الوصف</label>
-          <textarea id="adDescription" required maxlength="500" placeholder="اكتب تفاصيل المنتج أو الخدمة"></textarea>
-        </div>
-
-        <div class="field full">
-          <button class="primary-btn" type="submit">نشر الإعلان</button>
-        </div>
-      </form>
-    </div>
+<header>
+  <div class="container nav">
+    <div class="brand"><span class="logo">π</span> Pi Market</div>
+    <div class="search"><input id="q" placeholder="ابحث في الإعلانات"><select id="city"><option value="">كل المدن</option><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select><button class="yellow" id="search">بحث</button></div>
+    <div class="user" id="userBox"><span class="avatar" id="avatar">P</span><strong id="piName"></strong></div>
+    <button class="outline" id="loginBtn">دخول بحساب Pi</button>
+    <button class="yellow" id="chatBtn">المحادثات</button>
+    <button class="yellow" id="addBtn">+ إعلان</button>
   </div>
+</header>
 
-  <!-- نافذة تفاصيل الإعلان -->
-  <div class="modal" id="detailsModal" aria-hidden="true">
-    <div class="modal-box">
-      <div class="modal-head">
-        <h3 id="detailsTitle">تفاصيل الإعلان</h3>
-        <button class="close-btn" data-close="detailsModal">✕</button>
-      </div>
-      <img id="detailsImage" class="ad-image" alt="" style="border-radius:14px;height:270px" />
-      <h2 id="detailsPrice"></h2>
-      <p id="detailsDescription" style="line-height:1.9"></p>
-      <p id="detailsMeta" style="color:var(--muted)"></p>
-      <button class="primary-btn" style="width:100%" onclick="alert('أضف وسيلة التواصل أو نظام المحادثة من الخادم.')">
-        تواصل مع البائع
-      </button>
-    </div>
-  </div>
+<div class="hero"><div class="container"><h1>سوق Pi للإعلانات</h1><p>بيع واشترِ وتواصل مع البائعين. المستخدمون والإعلانات والمحادثات محفوظة في Supabase مع سياسات حماية RLS.</p></div></div>
 
-  <script>
-    // Production mode as requested.
-    Pi.init({ version: "2.0", sandbox: false });
+<section><div class="container"><div class="head"><h2>الأقسام</h2></div><div class="cats" id="cats"></div></div></section>
+<section><div class="container"><div class="head"><h2>أحدث الإعلانات</h2><select id="sort"><option value="new">الأحدث</option><option value="low">الأقل سعرًا</option><option value="high">الأعلى سعرًا</option></select></div><div class="grid" id="ads"></div></div></section>
 
-    const categories = [
-      { name: "الكل", icon: "🧭" },
-      { name: "سيارات", icon: "🚗" },
-      { name: "عقارات", icon: "🏠" },
-      { name: "موبايلات", icon: "📱" },
-      { name: "إلكترونيات", icon: "💻" },
-      { name: "أثاث", icon: "🛋️" },
-      { name: "وظائف", icon: "💼" },
-      { name: "خدمات", icon: "🛠️" },
-      { name: "موضة", icon: "👕" },
-      { name: "حيوانات", icon: "🐾" },
-      { name: "هوايات", icon: "🎮" },
-      { name: "أخرى", icon: "📦" }
-    ];
+<div class="modal" id="adModal"><div class="box"><div class="mh"><h2>إضافة إعلان</h2><button data-close="adModal">✕</button></div>
+<form class="form" id="adForm">
+<div class="field full"><label>العنوان</label><input id="title" required></div>
+<div class="field"><label>القسم</label><select id="category" required></select></div>
+<div class="field"><label>المدينة</label><select id="adCity" required><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div>
+<div class="field"><label>السعر بالـ Pi</label><input id="price" type="number" step=".01" min="0" required></div>
+<div class="field"><label>رابط الصورة</label><input id="image" type="url"></div>
+<div class="field full"><label>الوصف</label><textarea id="description" required></textarea></div>
+<button class="primary full">نشر الإعلان</button></form></div></div>
 
-    const demoAds = [
-      {
-        id: 1,
-        title: "سيارة سيدان بحالة ممتازة",
-        category: "سيارات",
-        city: "القاهرة",
-        price: 1450,
-        image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80",
-        description: "سيارة نظيفة، صيانة دورية، مكيف، جاهزة للمعاينة.",
-        createdAt: Date.now() - 100000
-      },
-      {
-        id: 2,
-        title: "شقة حديثة للبيع قرب الخدمات",
-        category: "عقارات",
-        city: "الجيزة",
-        price: 3800,
-        image: "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=900&q=80",
-        description: "شقة واسعة بتشطيب حديث، ثلاث غرف، قريبة من المواصلات.",
-        createdAt: Date.now() - 200000
-      },
-      {
-        id: 3,
-        title: "هاتف ذكي 256GB",
-        category: "موبايلات",
-        city: "الإسكندرية",
-        price: 320,
-        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
-        description: "الهاتف بحالة ممتازة مع العلبة والشاحن.",
-        createdAt: Date.now() - 300000
-      },
-      {
-        id: 4,
-        title: "لابتوب مناسب للعمل والدراسة",
-        category: "إلكترونيات",
-        city: "المنصورة",
-        price: 490,
-        image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80",
-        description: "جهاز سريع ببطارية جيدة وذاكرة مناسبة للاستخدام اليومي.",
-        createdAt: Date.now() - 400000
-      }
-    ];
+<div class="modal" id="detailsModal"><div class="box"><div class="mh"><h2 id="dTitle"></h2><button data-close="detailsModal">✕</button></div>
+<img id="dImage" style="width:100%;height:280px;object-fit:cover;border-radius:14px"><h2 id="dPrice"></h2><p id="dDesc"></p><p id="dMeta"></p>
+<button class="primary" id="contactBtn" style="width:100%">بدء محادثة مع البائع</button></div></div>
 
-    let ads = JSON.parse(localStorage.getItem("piMarketAds") || "null") || demoAds;
-    let currentCategory = "الكل";
-    let currentUser = JSON.parse(localStorage.getItem("piMarketUser") || "null");
-    let favorites = JSON.parse(localStorage.getItem("piMarketFavorites") || "[]");
+<div class="modal" id="chatModal"><div class="box" style="width:min(850px,100%)"><div class="mh"><h2>المحادثات</h2><button data-close="chatModal">✕</button></div>
+<div class="chat-layout"><div class="convos" id="convos"></div><div><div class="messages" id="messages"><div class="empty">اختر محادثة</div></div>
+<form class="send" id="sendForm"><input id="messageInput" placeholder="اكتب رسالة..." required><button class="primary">إرسال</button></form></div></div></div></div>
 
-    const els = {
-      categories: document.getElementById("categories"),
-      adsGrid: document.getElementById("adsGrid"),
-      adsCount: document.getElementById("adsCount"),
-      searchInput: document.getElementById("searchInput"),
-      cityFilter: document.getElementById("cityFilter"),
-      sortSelect: document.getElementById("sortSelect"),
-      loginBtn: document.getElementById("loginBtn"),
-      userChip: document.getElementById("userChip"),
-      usernameLabel: document.getElementById("usernameLabel"),
-      avatar: document.getElementById("avatar"),
-      adModal: document.getElementById("adModal"),
-      detailsModal: document.getElementById("detailsModal"),
-      adCategory: document.getElementById("adCategory"),
-      adMessage: document.getElementById("adMessage")
-    };
+<script>
+const SUPABASE_URL = "https://lptfaygmbuzuinhzsyvu.supabase.co/rest/v1/";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_6lED9FXDvjKDH2z6ytu_gA_s4JwY_vp";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    function escapeHTML(value = "") {
-      return String(value).replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      })[char]);
-    }
+Pi.init({version:"2.0",sandbox:false});
 
-    function renderCategories() {
-      els.categories.innerHTML = categories.map(category => `
-        <button class="category ${currentCategory === category.name ? "active" : ""}"
-                data-category="${escapeHTML(category.name)}">
-          <span class="category-icon">${category.icon}</span>
-          <strong>${escapeHTML(category.name)}</strong>
-        </button>
-      `).join("");
+const categories=[["الكل","🧭"],["سيارات","🚗"],["عقارات","🏠"],["موبايلات","📱"],["إلكترونيات","💻"],["أثاث","🛋️"],["وظائف","💼"],["خدمات","🛠️"],["أخرى","📦"]];
+let profile=null, ads=[], currentCategory="الكل", selectedAd=null, activeConversation=null, channel=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 
-      els.adCategory.innerHTML = categories
-        .filter(category => category.name !== "الكل")
-        .map(category => `<option>${escapeHTML(category.name)}</option>`)
-        .join("");
-    }
-
-    function getFilteredAds() {
-      const query = els.searchInput.value.trim().toLowerCase();
-      const city = els.cityFilter.value;
-      const sort = els.sortSelect.value;
-
-      let result = ads.filter(ad => {
-        const matchesCategory = currentCategory === "الكل" || ad.category === currentCategory;
-        const matchesCity = !city || ad.city === city;
-        const haystack = `${ad.title} ${ad.description} ${ad.category} ${ad.city}`.toLowerCase();
-        const matchesQuery = !query || haystack.includes(query);
-        return matchesCategory && matchesCity && matchesQuery;
-      });
-
-      result.sort((a, b) => {
-        if (sort === "low") return Number(a.price) - Number(b.price);
-        if (sort === "high") return Number(b.price) - Number(a.price);
-        return Number(b.createdAt) - Number(a.createdAt);
-      });
-
-      return result;
-    }
-
-    function renderAds() {
-      const filteredAds = getFilteredAds();
-      els.adsCount.textContent = ads.length;
-
-      if (!filteredAds.length) {
-        els.adsGrid.innerHTML = `<div class="empty">لا توجد إعلانات مطابقة لبحثك.</div>`;
-        return;
-      }
-
-      els.adsGrid.innerHTML = filteredAds.map(ad => `
-        <article class="ad-card">
-          <button class="favorite ${favorites.includes(ad.id) ? "active" : ""}"
-                  aria-label="إضافة للمفضلة"
-                  data-favorite="${ad.id}">
-            ${favorites.includes(ad.id) ? "♥" : "♡"}
-          </button>
-          <img class="ad-image"
-               src="${escapeHTML(ad.image || "https://placehold.co/900x600?text=Pi+Market")}"
-               alt="${escapeHTML(ad.title)}"
-               onerror="this.src='https://placehold.co/900x600?text=Pi+Market'">
-          <div class="ad-body">
-            <div class="ad-price">${Number(ad.price).toLocaleString("ar-EG")} π</div>
-            <h3 class="ad-title">${escapeHTML(ad.title)}</h3>
-            <div class="ad-meta">
-              <span>${escapeHTML(ad.city)}</span>
-              <span>${escapeHTML(ad.category)}</span>
-            </div>
-            <button class="secondary-btn" style="width:100%;margin-top:14px" data-details="${ad.id}">
-              عرض التفاصيل
-            </button>
-          </div>
-        </article>
-      `).join("");
-    }
-
-    function updateUserUI() {
-      if (currentUser) {
-        els.loginBtn.textContent = "تسجيل الخروج";
-        els.userChip.classList.add("show");
-        els.usernameLabel.textContent = currentUser.username || "Pi User";
-        els.avatar.textContent = (currentUser.username || "P").charAt(0).toUpperCase();
-      } else {
-        els.loginBtn.textContent = "تسجيل الدخول بـ Pi";
-        els.userChip.classList.remove("show");
-      }
-    }
-
-    async function loginWithPi() {
-      if (currentUser) {
-        currentUser = null;
-        localStorage.removeItem("piMarketUser");
-        localStorage.removeItem("piAccessToken");
-        updateUserUI();
-        return;
-      }
-
-      els.loginBtn.disabled = true;
-      els.loginBtn.textContent = "جارٍ الاتصال...";
-
-      try {
-        const scopes = ["username"];
-
-        const auth = await Pi.authenticate(scopes, function onIncompletePaymentFound(payment) {
-          console.warn("Incomplete Pi payment:", payment);
-          // عند إضافة الدفع يجب إرسال payment إلى الخادم لمعالجته وإكماله.
-        });
-
-        currentUser = {
-          uid: auth.user.uid,
-          username: auth.user.username
-        };
-
-        // للتجربة فقط. في الإنتاج الأفضل حفظ الجلسة في Cookie آمنة من الخادم.
-        localStorage.setItem("piMarketUser", JSON.stringify(currentUser));
-        localStorage.setItem("piAccessToken", auth.accessToken);
-
-        updateUserUI();
-
-        // مهم: أرسل accessToken إلى خادمك للتحقق عبر Pi Platform API /me.
-        console.log("Pi authentication succeeded. Verify accessToken on your backend.");
-      } catch (error) {
-        console.error(error);
-        alert("تعذر تسجيل الدخول. افتح الموقع من داخل Pi Browser وتأكد من إعداد التطبيق في Pi Developer Portal.");
-      } finally {
-        els.loginBtn.disabled = false;
-        updateUserUI();
-      }
-    }
-
-    function openModal(modal) {
-      modal.classList.add("show");
-      modal.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeModal(modal) {
-      modal.classList.remove("show");
-      modal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-    }
-
-    function requireLoginThenOpenAd() {
-      if (!currentUser) {
-        alert("سجّل الدخول عبر Pi أولًا حتى تتمكن من نشر إعلان.");
-        loginWithPi();
-        return;
-      }
-      openModal(els.adModal);
-    }
-
-    document.getElementById("adForm").addEventListener("submit", event => {
-      event.preventDefault();
-
-      if (!currentUser) {
-        showMessage("يجب تسجيل الدخول أولًا.", "error");
-        return;
-      }
-
-      const newAd = {
-        id: Date.now(),
-        title: document.getElementById("adTitle").value.trim(),
-        category: document.getElementById("adCategory").value,
-        city: document.getElementById("adCity").value,
-        price: Number(document.getElementById("adPrice").value),
-        image: document.getElementById("adImage").value.trim(),
-        description: document.getElementById("adDescription").value.trim(),
-        ownerUid: currentUser.uid,
-        ownerUsername: currentUser.username,
-        createdAt: Date.now()
-      };
-
-      ads.unshift(newAd);
-      localStorage.setItem("piMarketAds", JSON.stringify(ads));
-      event.target.reset();
-      showMessage("تم نشر الإعلان بنجاح.", "success");
-      renderAds();
-
-      setTimeout(() => {
-        closeModal(els.adModal);
-        els.adMessage.className = "message";
-      }, 700);
-    });
-
-    function showMessage(text, type) {
-      els.adMessage.textContent = text;
-      els.adMessage.className = `message show ${type}`;
-    }
-
-    function showDetails(id) {
-      const ad = ads.find(item => item.id === id);
-      if (!ad) return;
-
-      document.getElementById("detailsTitle").textContent = ad.title;
-      document.getElementById("detailsImage").src = ad.image || "https://placehold.co/900x600?text=Pi+Market";
-      document.getElementById("detailsPrice").textContent = `${Number(ad.price).toLocaleString("ar-EG")} π`;
-      document.getElementById("detailsDescription").textContent = ad.description;
-      document.getElementById("detailsMeta").textContent =
-        `${ad.category} • ${ad.city} • البائع: ${ad.ownerUsername || "مستخدم Pi"}`;
-
-      openModal(els.detailsModal);
-    }
-
-    document.addEventListener("click", event => {
-      const categoryButton = event.target.closest("[data-category]");
-      const favoriteButton = event.target.closest("[data-favorite]");
-      const detailsButton = event.target.closest("[data-details]");
-      const closeButton = event.target.closest("[data-close]");
-
-      if (categoryButton) {
-        currentCategory = categoryButton.dataset.category;
-        renderCategories();
-        renderAds();
-      }
-
-      if (favoriteButton) {
-        const id = Number(favoriteButton.dataset.favorite);
-        favorites = favorites.includes(id)
-          ? favorites.filter(item => item !== id)
-          : [...favorites, id];
-        localStorage.setItem("piMarketFavorites", JSON.stringify(favorites));
-        renderAds();
-      }
-
-      if (detailsButton) {
-        showDetails(Number(detailsButton.dataset.details));
-      }
-
-      if (closeButton) {
-        closeModal(document.getElementById(closeButton.dataset.close));
-      }
-
-      if (event.target.classList.contains("modal")) {
-        closeModal(event.target);
-      }
-    });
-
-    document.getElementById("searchBtn").addEventListener("click", renderAds);
-    els.searchInput.addEventListener("input", renderAds);
-    els.cityFilter.addEventListener("change", renderAds);
-    els.sortSelect.addEventListener("change", renderAds);
-    els.loginBtn.addEventListener("click", loginWithPi);
-    document.getElementById("addAdBtn").addEventListener("click", requireLoginThenOpenAd);
-    document.getElementById("heroAddBtn").addEventListener("click", requireLoginThenOpenAd);
-
-    renderCategories();
-    renderAds();
-    updateUserUI();
-  </script>
-</body>
-</html>
+function modal(id,show=true){$(id).classList.toggle("show",show)}
+function renderUser(){
+  const ok=!!profile;
+  $("userBox").classList.toggle("show",ok);
+  $("loginBtn").style.display=ok?"none":"inline-block";
+  if(ok){$("piName").textContent=profile.pi_username;$("avatar").textContent=(profile.pi_username||"P")[0].toUpperCase()}
+}
+async function ensureSupabaseSession(){
+  const {data:{session}}=await db.auth.getSession();
+  if(session) return session;
+  const {data,error}=await db.auth.signInAnonymously();
+  if(error) throw error;
+  return data.session;
+}
+async function loginPi(){
+  $("loginBtn").disabled=true;
+  try{
+    await ensureSupabaseSession();
+    const auth=await Pi.authenticate(["username"],p=>console.warn("Incomplete payment",p));
+    const {data,error}=await db.functions.invoke("verify-pi",{body:{piAccessToken:auth.accessToken}});
+    if(error) throw error;
+    profile=data.profile;
+    renderUser();
+    await loadAds();
+  }catch(e){console.error(e);alert("فشل تسجيل الدخول. افتح الموقع داخل Pi Browser، وفعّل Anonymous Sign-ins في Supabase، وانشر Edge Function verify-pi.")}
+  finally{$("loginBtn").disabled=false}
+}
+async function restoreProfile(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session)return;
+  const {data}=await db.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
+  profile=data;renderUser();
+}
+function renderCategories(){
+  $("cats").innerHTML=categories.map(([n,i])=>`<button class="cat ${n===currentCategory?"active":""}" data-cat="${n}"><span>${i}</span>${n}</button>`).join("");
+  $("category").innerHTML=categories.slice(1).map(([n])=>`<option>${n}</option>`).join("");
+}
+async function loadAds(){
+  let query=db.from("ads").select("*,profiles!ads_owner_id_fkey(pi_username)").eq("status","active");
+  if(currentCategory!=="الكل")query=query.eq("category",currentCategory);
+  if($("city").value)query=query.eq("city",$("city").value);
+  if($("q").value.trim())query=query.ilike("title",`%${$("q").value.trim()}%`);
+  query=query.order($("sort").value==="low"?"price":$("sort").value==="high"?"price":"created_at",{ascending:$("sort").value==="low"});
+  const {data,error}=await query;
+  if(error){$("ads").innerHTML=`<div class="empty error">${esc(error.message)}</div>`;return}
+  ads=data||[];renderAds();
+}
+function renderAds(){
+  $("ads").innerHTML=ads.length?ads.map(a=>`<article class="card"><img src="${esc(a.image_url||"https://placehold.co/800x550?text=Pi+Market")}" onerror="this.src='https://placehold.co/800x550?text=Pi+Market'"><div class="body"><div class="price">${Number(a.price).toLocaleString("ar-EG")} π</div><h3>${esc(a.title)}</h3><div class="meta"><span>${esc(a.city)}</span><span>${esc(a.category)}</span></div><button class="primary" style="width:100%;margin-top:12px" data-details="${a.id}">التفاصيل</button></div></article>`).join(""):`<div class="empty">لا توجد إعلانات</div>`;
+}
+async function addAd(e){
+  e.preventDefault();if(!profile)return alert("سجل الدخول أولًا");
+  const row={owner_id:profile.id,title:$("title").value.trim(),description:$("description").value.trim(),category:$("category").value,city:$("adCity").value,price:Number($("price").value),image_url:$("image").value.trim()||null};
+  const {error}=await db.from("ads").insert(row);if(error)return alert(error.message);
+  e.target.reset();modal("adModal",false);await loadAds();
+}
+function showDetails(id){
+  selectedAd=ads.find(a=>a.id===id);if(!selectedAd)return;
+  $("dTitle").textContent=selectedAd.title;$("dPrice").textContent=`${Number(selectedAd.price).toLocaleString("ar-EG")} π`;
+  $("dDesc").textContent=selectedAd.description;$("dMeta").textContent=`${selectedAd.city} • البائع: ${selectedAd.profiles?.pi_username||"مستخدم Pi"}`;
+  $("dImage").src=selectedAd.image_url||"https://placehold.co/800x550?text=Pi+Market";modal("detailsModal");
+}
+async function startConversation(){
+  if(!profile)return loginPi();
+  if(selectedAd.owner_id===profile.id)return alert("هذا إعلانك");
+  const {data,error}=await db.rpc("get_or_create_conversation",{p_ad_id:selectedAd.id,p_seller_id:selectedAd.owner_id});
+  if(error)return alert(error.message);
+  modal("detailsModal",false);modal("chatModal");await loadConversations(data);
+}
+async function loadConversations(selectId=null){
+  if(!profile)return;
+  const {data,error}=await db.from("conversation_members").select("conversation_id,conversations(id,ad_id,updated_at,ads(title))").eq("user_id",profile.id).order("joined_at",{ascending:false});
+  if(error)return;
+  const rows=data||[];
+  $("convos").innerHTML=rows.length?rows.map(r=>`<button class="convo ${r.conversation_id===(selectId||activeConversation)?"active":""}" data-convo="${r.conversation_id}">${esc(r.conversations.ads?.title||"محادثة")}</button>`).join(""):`<div class="empty">لا توجد محادثات</div>`;
+  if(selectId)await openConversation(selectId);
+}
+async function openConversation(id){
+  activeConversation=id;await loadConversations();
+  const {data,error}=await db.from("messages").select("*,profiles(pi_username)").eq("conversation_id",id).order("created_at");
+  if(error)return;
+  renderMessages(data||[]);
+  if(channel)await db.removeChannel(channel);
+  channel=db.channel("messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`conversation_id=eq.${id}`},async payload=>{
+    const {data}=await db.from("messages").select("*,profiles(pi_username)").eq("id",payload.new.id).single();
+    appendMessage(data);
+  }).subscribe();
+}
+function renderMessages(rows){$("messages").innerHTML="";rows.forEach(appendMessage)}
+function appendMessage(m){
+  const div=document.createElement("div");div.className="bubble "+(m.sender_id===profile.id?"mine":"");
+  div.innerHTML=`<strong>${esc(m.profiles?.pi_username||"مستخدم")}</strong><br>${esc(m.body)}`;$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
+}
+async function sendMessage(e){
+  e.preventDefault();if(!activeConversation)return alert("اختر محادثة");
+  const body=$("messageInput").value.trim();if(!body)return;
+  const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:profile.id,body});
+  if(error)return alert(error.message);$("messageInput").value="";
+}
+document.addEventListener("click",e=>{
+  const c=e.target.closest("[data-cat]"),d=e.target.closest("[data-details]"),x=e.target.closest("[data-close]"),v=e.target.closest("[data-convo]");
+  if(c){currentCategory=c.dataset.cat;renderCategories();loadAds()} if(d)showDetails(d.dataset.details);if(x)modal(x.dataset.close,false);if(v)openConversation(v.dataset.convo);
+  if(e.target.classList.contains("modal"))modal(e.target.id,false);
+});
+$("loginBtn").onclick=loginPi;$("addBtn").onclick=()=>profile?modal("adModal"):loginPi;$("chatBtn").onclick=async()=>{if(!profile)return loginPi();modal("chatModal");await loadConversations()};
+$("contactBtn").onclick=startConversation;$("adForm").onsubmit=addAd;$("sendForm").onsubmit=sendMessage;
+$("search").onclick=loadAds;$("q").oninput=loadAds;$("city").onchange=loadAds;$("sort").onchange=loadAds;
+renderCategories();restoreProfile().then(loadAds);
+</script>
+</body></html>
