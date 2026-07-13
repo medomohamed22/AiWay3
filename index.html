@@ -25,6 +25,20 @@ async function authenticatePi(){
   if(!piAuth?.accessToken)throw Error('Pi authentication did not return an access token');
   return piAuth;
 }
+async function ensurePiPaymentsAuth(){
+  const a=await authenticatePi();
+  const r=await fetch(API.login,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({accessToken:a.accessToken})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(d.error||'Unable to refresh Pi sign-in');
+  auth=d;
+  localStorage.setItem('apphub_auth',JSON.stringify(auth));
+  restoreAuth();
+  return a;
+}
 async function loginWithPi(){
   try{
     const a=await authenticatePi();
