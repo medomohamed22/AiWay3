@@ -1,0 +1,2 @@
+import { allowMethods, db, handleError, json, requireUser } from './_lib.js';
+export default async function handler(req,res){if(!allowMethods(req,res,['GET']))return;try{const user=await requireUser(req);const {data,error}=await db().from('apps').select('*').eq('owner_id',user.id).order('created_at',{ascending:false});if(error)throw error;return json(res,200,{apps:data||[]})}catch(e){return handleError(e,res,'Unable to load your apps')}}

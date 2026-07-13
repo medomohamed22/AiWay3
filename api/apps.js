@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     const supabase = db();
     const { data, error } = await supabase
       .from('apps')
-      .select('id,name,slug,category,short_description,website_url,icon_url,screenshot_urls,rating,is_featured,developer_name,created_at')
+      .select('id,name,slug,category,network,short_description,website_url,icon_url,screenshot_urls,rating,is_featured,developer_name,created_at')
       .eq('status', 'published')
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false });
