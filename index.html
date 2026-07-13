@@ -7,9 +7,9 @@
 <title>DealWay</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
-<script defer src="https://sdk.minepi.com/pi-sdk.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 <style>
 :root{--primary:#6366F1;--primary-dark:#4F46E5;--accent:#F59E0B;--bg:#F8FAFC;--surface:#fff;--text:#0F172A;--muted:#64748B;--light:#94A3B8;--danger:#EF4444;--success:#10B981;--border:#E2E8F0;--shadow:0 10px 30px rgb(15 23 42/.08);--shadow-lg:0 20px 45px rgb(15 23 42/.15);--r:16px;--rx:24px;--nav:78px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}html{scroll-behavior:smooth}body{font-family:Tajawal,sans-serif;background:linear-gradient(135deg,#F8FAFC,#F1F5F9);color:var(--text);padding-bottom:calc(var(--nav) + 22px);min-height:100vh}.hidden{display:none!important}
@@ -121,7 +121,11 @@ button,input,select,textarea{font:inherit}.container{width:min(100%,920px);margi
 <div id="debugModal" class="modal"><div class="sheet"><div class="modal-head"><div class="modal-title">تفاصيل الخطأ</div><button class="close" onclick="closeModal('debugModal')">✕</button></div><pre id="debugOutput" class="debug"></pre><button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="copyDebug()">نسخ الخطأ</button></div></div>
 
 <script>
-Pi.init({version:"2.0",sandbox:false});
+if (window.Pi) {
+  Pi.init({version:"2.0",sandbox:false});
+} else {
+  console.error("Pi SDK failed to load");
+}
 const CATS=[["الكل","all","fa-layer-group"],["سيارات","سيارات","fa-car"],["عقارات","عقارات","fa-house"],["موبايلات","موبايلات","fa-mobile-screen"],["إلكترونيات","إلكترونيات","fa-laptop"],["أثاث","أثاث","fa-couch"],["وظائف","وظائف","fa-briefcase"],["خدمات","خدمات","fa-screwdriver-wrench"],["أخرى","أخرى","fa-box"]];
 let db=null,profile=null,ads=[],activeCategory="all",selectedFiles=[],selectedAd=null,activeConversation=null,realtime=null,bootPromise=null;
 const $=id=>document.getElementById(id);
@@ -131,17 +135,67 @@ function openModal(id){$(id).classList.add("show")}function closeModal(id){$(id)
 function showError(e,extra={}){$("debugOutput").textContent=JSON.stringify({time:new Date().toISOString(),message:e?.message||String(e),stack:e?.stack||null,...extra},null,2);openModal("debugModal")}
 async function copyDebug(){await navigator.clipboard.writeText($("debugOutput").textContent);showToast("تم النسخ")}
 async function boot(){
+  renderCategories();
+
   try{
-    const res=await fetch("/api/config",{cache:"no-store"}),text=await res.text();let cfg;
-    try{cfg=JSON.parse(text)}catch{throw new Error("رد /api/config غير صالح: "+text.slice(0,500))}
-    if(!res.ok)throw new Error(cfg.error||"فشل /api/config");
+    if(!window.supabase){
+      throw new Error("مكتبة Supabase لم يتم تحميلها");
+    }
+
+    const res=await fetch("/api/config",{cache:"no-store"});
+    const text=await res.text();
+    let cfg;
+
+    try{
+      cfg=JSON.parse(text);
+    }catch{
+      throw new Error("رد /api/config غير صالح: "+text.slice(0,500));
+    }
+
+    if(!res.ok){
+      throw new Error(cfg.error||"فشل /api/config");
+    }
+
     db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
-    await restoreProfile();renderCategories();await loadAds();
-  }catch(e){showError(e,{stage:"boot"});throw e}
+
+    await restoreProfile();
+    await loadAds();
+  }catch(e){
+    console.error(e);
+    $("products").innerHTML=`
+      <div class="empty">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <h3>تعذر تحميل المنتجات</h3>
+        <p style="margin-top:8px">${esc(e.message||e)}</p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="retryBoot()">
+          إعادة المحاولة
+        </button>
+      </div>
+    `;
+    showError(e,{stage:"boot"});
+    return false;
+  }
+
+  return true;
+}
+
+async function retryBoot(){
+  closeModal("debugModal");
+  $("products").innerHTML=`
+    <div class="empty">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <h3>جاري التحميل...</h3>
+    </div>
+  `;
+  bootPromise=boot();
+  await bootPromise;
 }
 async function ensureSession(){const {data:{session}}=await db.auth.getSession();if(session)return session;const {data,error}=await db.auth.signInAnonymously();if(error)throw error;return data.session}
 async function loginPi(){
   try{
+    if(!window.Pi){
+      throw new Error("Pi SDK لم يتم تحميله. افتح الموقع داخل Pi Browser وأعد المحاولة");
+    }
     if(!db)await bootPromise;
     const session=await ensureSession();
     const auth=await Pi.authenticate(["username"],p=>console.warn(p));
@@ -155,13 +209,82 @@ async function restoreProfile(){const {data:{session}}=await db.auth.getSession(
 function renderUser(){const logged=!!profile;$("loginBtn").classList.toggle("hidden",logged);$("headerUser").classList.toggle("hidden",!logged);$("guestProfile").classList.toggle("hidden",logged);$("userProfile").classList.toggle("hidden",!logged);if(logged){$("userName").textContent=profile.pi_username;$("profileName").textContent=profile.pi_username}}
 function renderCategories(){$("categories").innerHTML=CATS.map(([label,val,icon])=>`<button class="chip ${activeCategory===val?"active":""}" data-cat="${val}"><i class="fa-solid ${icon}"></i>${label}</button>`).join("");$("adCategory").innerHTML=CATS.slice(1).map(([l,v])=>`<option value="${v}">${l}</option>`).join("")}
 async function loadAds(){
-  let q=db.from("ads").select("*,profiles!ads_owner_id_fkey(pi_username)").eq("status","active");
-  if(activeCategory!=="all")q=q.eq("category",activeCategory);if($("cityFilter").value)q=q.eq("city",$("cityFilter").value);if($("searchInput").value.trim())q=q.ilike("title",`%${$("searchInput").value.trim()}%`);
-  const {data,error}=await q.order("created_at",{ascending:false});if(error)return showError(error,{stage:"load_ads"});ads=data||[];renderAds();
+  if(!db){
+    $("products").innerHTML=`
+      <div class="empty">
+        <i class="fa-solid fa-database"></i>
+        <h3>قاعدة البيانات غير متصلة</h3>
+      </div>
+    `;
+    return;
+  }
+
+  let q=db.from("ads")
+    .select("*,profiles!ads_owner_id_fkey(pi_username)")
+    .eq("status","active");
+
+  if(activeCategory!=="all") q=q.eq("category",activeCategory);
+  if($("cityFilter").value) q=q.eq("city",$("cityFilter").value);
+  if($("searchInput").value.trim()) q=q.ilike("title",`%${$("searchInput").value.trim()}%`);
+
+  const {data,error}=await q.order("created_at",{ascending:false});
+
+  if(error){
+    console.error(error);
+    $("products").innerHTML=`
+      <div class="empty">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <h3>خطأ في تحميل المنتجات</h3>
+        <p style="margin-top:8px">${esc(error.message)}</p>
+      </div>
+    `;
+    showError(error,{stage:"load_ads"});
+    return;
+  }
+
+  ads=data||[];
+  renderAds();
 }
 function firstImage(a){return (Array.isArray(a.images)&&a.images[0])||a.image_url||"https://placehold.co/600x600?text=DealWay"}
 function renderAds(){const list=$("products");list.innerHTML=ads.length?ads.map(a=>`<article class="card" data-details="${a.id}"><div class="card-img-wrap"><img class="card-img" src="${esc(firstImage(a))}" loading="lazy"><div class="location"><i class="fa-solid fa-location-dot"></i> ${esc(a.city)}</div></div><div class="card-body"><div class="card-title">${esc(a.title)}</div><div class="price">${Number(a.price).toLocaleString("ar-EG")} π</div></div></article>`).join(""):`<div class="empty"><i class="fa-solid fa-box-open"></i><h3>لا توجد إعلانات</h3></div>`}
-function nav(name){document.querySelectorAll(".view").forEach(v=>v.classList.add("hidden"));$("view-"+name).classList.remove("hidden");document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.nav===name));if(name==="profile"&&profile)loadMyAds();if(name==="chats"&&profile)loadInbox()}
+function nav(name){
+  const view=$("view-"+name);
+  if(!view)return;
+
+  document.querySelectorAll(".view").forEach(v=>v.classList.add("hidden"));
+  view.classList.remove("hidden");
+
+  document.querySelectorAll(".nav-item").forEach(
+    b=>b.classList.toggle("active",b.dataset.nav===name)
+  );
+
+  if(name==="profile"){
+    if(profile){
+      loadMyAds();
+    }else{
+      $("guestProfile").classList.remove("hidden");
+      $("userProfile").classList.add("hidden");
+    }
+  }
+
+  if(name==="chats"){
+    if(profile){
+      loadInbox();
+    }else{
+      $("inbox").innerHTML=`
+        <div class="empty">
+          <i class="fa-solid fa-user-lock"></i>
+          <h3>سجل الدخول لعرض المحادثات</h3>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="loginPi()">
+            دخول
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function showDetails(id){
   selectedAd=ads.find(a=>a.id===id);if(!selectedAd)return;const imgs=(Array.isArray(selectedAd.images)&&selectedAd.images.length?selectedAd.images:[firstImage(selectedAd)]);
   $("detailSlider").innerHTML=imgs.map(src=>`<div class="slide"><img src="${esc(src)}"></div>`).join("");$("detailDots").innerHTML=imgs.map((_,i)=>`<span class="dot ${i===0?"active":""}"></span>`).join("");
