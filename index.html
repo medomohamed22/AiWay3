@@ -1,195 +1,220 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pi Market</title>
+  <meta name="theme-color" content="#0c2f33">
+  <title>Pi Souq</title>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
   <style>
-    :root{--p:#002f34;--p2:#00474f;--a:#ffce32;--bg:#f4f7f7;--line:#d8e0e1;--muted:#6c797c;--danger:#b3261e}
-    *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial;background:var(--bg);color:#173438}
-    button,input,select,textarea{font:inherit}.container{width:min(1180px,calc(100% - 26px));margin:auto}
-    header{position:sticky;top:0;z-index:30;background:var(--p);color:#fff;box-shadow:0 5px 18px #0002}
-    .nav{min-height:72px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:900;display:flex;align-items:center;gap:9px}
-    .logo{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--a);color:var(--p);font-size:26px}
-    .search{flex:1;display:flex;gap:8px}.search input,.search select{border:0;border-radius:10px;padding:12px;min-width:0}.search input{flex:1}
-    button{border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer}.yellow{background:var(--a);color:var(--p)}
-    .outline{background:transparent;color:#fff;border:1px solid #ffffff66}.user{display:none;align-items:center;gap:8px}
-    .user.show{display:flex}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:var(--p);font-weight:900}
-    .hero{padding:55px 0;background:linear-gradient(135deg,#00474f,#002f34);color:#fff}.hero h1{font-size:clamp(34px,6vw,64px);margin:0 0 12px}.hero p{max-width:720px;line-height:1.9;color:#dce8e9}
-    section{padding:32px 0}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.head h2{margin:0}
-    .cats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.cat{background:#fff;border:1px solid var(--line);padding:18px 8px}.cat.active{border-color:var(--p);box-shadow:0 8px 25px #002f3414}
-    .cat span{display:block;font-size:28px;margin-bottom:6px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}
-    .card{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:0 7px 22px #002f340d}.card img{width:100%;height:190px;object-fit:cover;background:#e5ebeb}
-    .body{padding:14px}.price{font-size:21px;font-weight:900;color:var(--p)}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
-    .modal{display:none;position:fixed;inset:0;background:#001b1dcc;z-index:80;padding:15px;align-items:center;justify-content:center}.modal.show{display:flex}
-    .box{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:22px}.mh{display:flex;justify-content:space-between;align-items:center}
-    .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.full{grid-column:1/-1}
-    .field input,.field select,.field textarea{border:1px solid var(--line);border-radius:10px;padding:12px}.field textarea{min-height:100px}.primary{background:var(--p);color:#fff}
-    .chat-layout{display:grid;grid-template-columns:210px 1fr;gap:12px}.convos{border-left:1px solid var(--line);max-height:470px;overflow:auto}
-    .convo{width:100%;text-align:right;background:#fff;border-bottom:1px solid var(--line);border-radius:0}.convo.active{background:#e9f2f2}
-    .messages{height:380px;overflow:auto;background:#f6f8f8;padding:12px;border-radius:12px}.bubble{max-width:80%;background:#fff;padding:9px 12px;border-radius:12px;margin:8px 0}
-    .bubble.mine{margin-right:auto;background:#d9f4eb}.send{display:flex;gap:8px;margin-top:10px}.send input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px}
-    .empty{text-align:center;padding:35px;background:#fff;border-radius:15px;color:var(--muted)}.error{color:var(--danger)}
-    @media(max-width:900px){.cats{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.search{order:3;width:100%}}
-    @media(max-width:600px){.cats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.chat-layout{grid-template-columns:1fr}.convos{border:0;max-height:130px}}
+    :root{
+      --bg:#f6f8f8;--card:#fff;--text:#163438;--muted:#758588;--brand:#0c2f33;
+      --brand2:#174c52;--accent:#ffd85a;--line:#dce5e6;--danger:#d4382f;
+      --shadow:0 14px 40px rgba(12,47,51,.10);--r:22px
+    }
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select,textarea{font:inherit}.container{width:min(1180px,calc(100% - 28px));margin:auto}
+    .icon{width:21px;height:21px;display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    header{position:sticky;top:0;z-index:30;background:rgba(12,47,51,.94);backdrop-filter:blur(16px);color:#fff;border-bottom:1px solid #ffffff17}
+    .nav{min-height:76px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:900}
+    .logo{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,var(--accent),#ffbd2e);display:grid;place-items:center;color:var(--brand);font-size:27px;box-shadow:0 8px 24px #0002}
+    .search{flex:1;display:flex;align-items:center;background:#fff;border-radius:14px;padding:0 12px;min-width:260px}.search input{flex:1;border:0;outline:0;padding:14px;background:transparent}.search .icon{color:#6b7d80}
+    .btn{border:0;border-radius:13px;padding:12px 16px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:.2s}
+    .btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--accent);color:var(--brand)}.btn-dark{background:var(--brand);color:#fff}.btn-ghost{background:#ffffff10;color:#fff;border:1px solid #ffffff2d}
+    .user{display:none;align-items:center;gap:9px;padding:7px 10px 7px 13px;background:#ffffff10;border-radius:14px;border:1px solid #ffffff24}.user.show{display:flex}
+    .avatar{width:36px;height:36px;border-radius:12px;background:var(--accent);color:var(--brand);display:grid;place-items:center;font-weight:900}
+    .hero{padding:78px 0 62px;background:
+      radial-gradient(circle at 10% 20%,rgba(255,216,90,.25),transparent 26%),
+      radial-gradient(circle at 85% 5%,rgba(68,143,151,.30),transparent 27%),
+      linear-gradient(135deg,#174c52,#0c2f33);color:#fff}
+    .hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center}.eyebrow{display:inline-flex;gap:8px;align-items:center;background:#ffffff12;border:1px solid #ffffff20;border-radius:99px;padding:8px 12px;color:#dce9ea}
+    h1{font-size:clamp(42px,7vw,76px);line-height:1.06;margin:18px 0}.hero p{font-size:18px;line-height:1.9;color:#d9e7e8;max-width:680px}
+    .hero-card{background:#ffffff10;border:1px solid #ffffff20;border-radius:28px;padding:24px;box-shadow:0 24px 80px #0002;backdrop-filter:blur(12px)}
+    .stat{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid #ffffff18}.stat:last-child{border-bottom:0}.stat strong{font-size:28px;color:var(--accent)}
+    section{padding:36px 0}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.head h2{margin:0;font-size:29px}
+    .categories{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.cat{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:18px 10px;cursor:pointer;text-align:center;transition:.2s}.cat:hover,.cat.active{transform:translateY(-3px);box-shadow:var(--shadow);border-color:#91aeb1}
+    .cat svg{width:30px;height:30px;margin-bottom:9px;color:var(--brand)}.toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 13px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:0 8px 25px rgba(12,47,51,.06);transition:.2s}.card:hover{transform:translateY(-5px);box-shadow:var(--shadow)}
+    .card img{width:100%;height:200px;object-fit:cover;background:#e9eeee}.card-body{padding:16px}.price{font-size:23px;font-weight:900;color:var(--brand)}.card h3{font-size:17px;min-height:48px}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+    .modal{display:none;position:fixed;inset:0;background:#061d20cc;z-index:80;align-items:center;justify-content:center;padding:16px}.modal.show{display:flex}.box{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:24px;box-shadow:0 30px 90px #0004}
+    .mh{display:flex;justify-content:space-between;align-items:center}.close{width:40px;height:40px;border:0;border-radius:12px;background:#eef3f3;cursor:pointer}.form{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:7px}.full{grid-column:1/-1}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:12px;padding:12px;outline:0}.field textarea{min-height:110px}.field input:focus,.field textarea:focus,.field select:focus{border-color:#6d999e;box-shadow:0 0 0 4px #174c5212}
+    .empty{grid-column:1/-1;text-align:center;background:#fff;border:1px dashed var(--line);padding:42px;border-radius:20px;color:var(--muted)}
+    .chat{display:grid;grid-template-columns:220px 1fr;gap:14px}.convos{max-height:460px;overflow:auto;border-left:1px solid var(--line)}.convo{width:100%;text-align:right;border:0;border-bottom:1px solid var(--line);background:#fff;padding:13px;cursor:pointer}.convo.active{background:#eaf3f3}
+    .messages{height:390px;overflow:auto;background:#f5f8f8;border-radius:16px;padding:12px}.bubble{max-width:82%;background:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:14px;margin:8px 0}.bubble.mine{margin-right:auto;background:#ddf4ec}.send{display:flex;gap:8px;margin-top:10px}.send input{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px}
+    .toast{position:fixed;bottom:18px;left:18px;z-index:100;background:#112f33;color:#fff;border-radius:14px;padding:13px 16px;display:none;box-shadow:var(--shadow)}.toast.show{display:block}
+    @media(max-width:950px){.hero-grid{grid-template-columns:1fr}.categories{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.search{order:3;width:100%}}
+    @media(max-width:620px){.categories{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.chat{grid-template-columns:1fr}.convos{max-height:130px;border:0}}
   </style>
 </head>
 <body>
 <header>
   <div class="container nav">
-    <div class="brand"><span class="logo">π</span> Pi Market</div>
-    <div class="search"><input id="q" placeholder="ابحث في الإعلانات"><select id="city"><option value="">كل المدن</option><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select><button class="yellow" id="search">بحث</button></div>
+    <div class="brand"><span class="logo">π</span><span>Pi Souq</span></div>
+    <div class="search">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+      <input id="q" placeholder="ابحث عن سيارة، هاتف، عقار...">
+    </div>
     <div class="user" id="userBox"><span class="avatar" id="avatar">P</span><strong id="piName"></strong></div>
-    <button class="outline" id="loginBtn">دخول بحساب Pi</button>
-    <button class="yellow" id="chatBtn">المحادثات</button>
-    <button class="yellow" id="addBtn">+ إعلان</button>
+    <button class="btn btn-ghost" id="loginBtn">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
+      دخول Pi
+    </button>
+    <button class="btn btn-ghost" id="chatBtn">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+      المحادثات
+    </button>
+    <button class="btn btn-primary" id="addBtn">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
+      أضف إعلانًا
+    </button>
   </div>
 </header>
 
-<div class="hero"><div class="container"><h1>سوق Pi للإعلانات</h1><p>بيع واشترِ وتواصل مع البائعين. المستخدمون والإعلانات والمحادثات محفوظة في Supabase مع سياسات حماية RLS.</p></div></div>
+<main>
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v18M17 6H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        سوق مجتمع Pi
+      </span>
+      <h1>بيع واشترِ بسهولة داخل عالم Pi</h1>
+      <p>إعلانات مبوبة حديثة، حساب واحد عبر Pi SDK، ومحادثات مباشرة محفوظة في Supabase.</p>
+      <button class="btn btn-primary" id="heroAdd">ابدأ البيع الآن</button>
+    </div>
+    <div class="hero-card">
+      <div class="stat"><span>الإعلانات المتاحة</span><strong id="adsCount">0</strong></div>
+      <div class="stat"><span>الدخول</span><strong>Pi SDK</strong></div>
+      <div class="stat"><span>البيانات</span><strong>Supabase</strong></div>
+    </div>
+  </div>
+</section>
 
-<section><div class="container"><div class="head"><h2>الأقسام</h2></div><div class="cats" id="cats"></div></div></section>
-<section><div class="container"><div class="head"><h2>أحدث الإعلانات</h2><select id="sort"><option value="new">الأحدث</option><option value="low">الأقل سعرًا</option><option value="high">الأعلى سعرًا</option></select></div><div class="grid" id="ads"></div></div></section>
+<section><div class="container"><div class="head"><h2>تصفح الأقسام</h2></div><div class="categories" id="categories"></div></div></section>
+<section><div class="container">
+  <div class="head"><h2>أحدث الإعلانات</h2><div class="toolbar"><select id="city"><option value="">كل المدن</option><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select><select id="sort"><option value="new">الأحدث</option><option value="low">الأقل سعرًا</option><option value="high">الأعلى سعرًا</option></select></div></div>
+  <div class="grid" id="ads"></div>
+</div></section>
+</main>
 
-<div class="modal" id="adModal"><div class="box"><div class="mh"><h2>إضافة إعلان</h2><button data-close="adModal">✕</button></div>
+<div class="modal" id="adModal"><div class="box"><div class="mh"><h2>إضافة إعلان جديد</h2><button class="close" data-close="adModal">✕</button></div>
 <form class="form" id="adForm">
-<div class="field full"><label>العنوان</label><input id="title" required></div>
-<div class="field"><label>القسم</label><select id="category" required></select></div>
-<div class="field"><label>المدينة</label><select id="adCity" required><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div>
-<div class="field"><label>السعر بالـ Pi</label><input id="price" type="number" step=".01" min="0" required></div>
-<div class="field"><label>رابط الصورة</label><input id="image" type="url"></div>
-<div class="field full"><label>الوصف</label><textarea id="description" required></textarea></div>
-<button class="primary full">نشر الإعلان</button></form></div></div>
+  <div class="field full"><label>عنوان الإعلان</label><input id="title" required maxlength="100"></div>
+  <div class="field"><label>القسم</label><select id="category" required></select></div>
+  <div class="field"><label>المدينة</label><select id="adCity" required><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div>
+  <div class="field"><label>السعر بالـ Pi</label><input id="price" type="number" min="0" step=".01" required></div>
+  <div class="field"><label>رابط الصورة</label><input id="image" type="url"></div>
+  <div class="field full"><label>الوصف</label><textarea id="description" required maxlength="2000"></textarea></div>
+  <button class="btn btn-dark full">نشر الإعلان</button>
+</form></div></div>
 
-<div class="modal" id="detailsModal"><div class="box"><div class="mh"><h2 id="dTitle"></h2><button data-close="detailsModal">✕</button></div>
-<img id="dImage" style="width:100%;height:280px;object-fit:cover;border-radius:14px"><h2 id="dPrice"></h2><p id="dDesc"></p><p id="dMeta"></p>
-<button class="primary" id="contactBtn" style="width:100%">بدء محادثة مع البائع</button></div></div>
+<div class="modal" id="detailsModal"><div class="box"><div class="mh"><h2 id="dTitle"></h2><button class="close" data-close="detailsModal">✕</button></div>
+<img id="dImage" style="width:100%;height:280px;object-fit:cover;border-radius:18px"><h2 id="dPrice"></h2><p id="dDesc"></p><p id="dMeta" style="color:var(--muted)"></p>
+<button class="btn btn-dark" id="contactBtn" style="width:100%">ابدأ محادثة</button></div></div>
 
-<div class="modal" id="chatModal"><div class="box" style="width:min(850px,100%)"><div class="mh"><h2>المحادثات</h2><button data-close="chatModal">✕</button></div>
-<div class="chat-layout"><div class="convos" id="convos"></div><div><div class="messages" id="messages"><div class="empty">اختر محادثة</div></div>
-<form class="send" id="sendForm"><input id="messageInput" placeholder="اكتب رسالة..." required><button class="primary">إرسال</button></form></div></div></div></div>
+<div class="modal" id="chatModal"><div class="box" style="width:min(860px,100%)"><div class="mh"><h2>المحادثات</h2><button class="close" data-close="chatModal">✕</button></div>
+<div class="chat"><div class="convos" id="convos"></div><div><div class="messages" id="messages"><div class="empty">اختر محادثة</div></div>
+<form class="send" id="sendForm"><input id="messageInput" placeholder="اكتب رسالة..." required><button class="btn btn-dark">إرسال</button></form></div></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = "https://lptfaygmbuzuinhzsyvu.supabase.co/rest/v1/";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_6lED9FXDvjKDH2z6ytu_gA_s4JwY_vp";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
 Pi.init({version:"2.0",sandbox:false});
 
-const categories=[["الكل","🧭"],["سيارات","🚗"],["عقارات","🏠"],["موبايلات","📱"],["إلكترونيات","💻"],["أثاث","🛋️"],["وظائف","💼"],["خدمات","🛠️"],["أخرى","📦"]];
-let profile=null, ads=[], currentCategory="الكل", selectedAd=null, activeConversation=null, channel=null;
-const $=id=>document.getElementById(id);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-
-function modal(id,show=true){$(id).classList.toggle("show",show)}
-function renderUser(){
-  const ok=!!profile;
-  $("userBox").classList.toggle("show",ok);
-  $("loginBtn").style.display=ok?"none":"inline-block";
-  if(ok){$("piName").textContent=profile.pi_username;$("avatar").textContent=(profile.pi_username||"P")[0].toUpperCase()}
+const ICONS={
+  all:'<svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="9"></circle><path d="m14.5 9.5-3 6-2-2 5-4z"></path></svg>',
+  car:'<svg viewBox="0 0 24 24" class="icon"><path d="m5 17-2-2v-3l2-5h14l2 5v3l-2 2"></path><path d="M7 17v2M17 17v2M5 12h14"></path><circle cx="7.5" cy="14.5" r=".5"></circle><circle cx="16.5" cy="14.5" r=".5"></circle></svg>',
+  home:'<svg viewBox="0 0 24 24" class="icon"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10M9 20v-6h6v6"></path></svg>',
+  phone:'<svg viewBox="0 0 24 24" class="icon"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>',
+  laptop:'<svg viewBox="0 0 24 24" class="icon"><rect x="4" y="4" width="16" height="11" rx="1"></rect><path d="M2 19h20"></path></svg>',
+  sofa:'<svg viewBox="0 0 24 24" class="icon"><path d="M5 12V9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3"></path><path d="M3 12a2 2 0 0 1 2 2v4h14v-4a2 2 0 1 1 2 0v6H3v-6a2 2 0 1 1 0-2z"></path></svg>',
+  briefcase:'<svg viewBox="0 0 24 24" class="icon"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V4h8v3M3 12h18"></path></svg>',
+  tools:'<svg viewBox="0 0 24 24" class="icon"><path d="m14 7 3-3 3 3-3 3"></path><path d="m4 20 8-8M7 3l4 4-3 3-4-4z"></path></svg>',
+  box:'<svg viewBox="0 0 24 24" class="icon"><path d="m3 7 9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7M12 11v10"></path></svg>'
+};
+const CATS=[["الكل","all"],["سيارات","car"],["عقارات","home"],["موبايلات","phone"],["إلكترونيات","laptop"],["أثاث","sofa"],["وظائف","briefcase"],["خدمات","tools"],["أخرى","box"]];
+let db,profile=null,ads=[],category="الكل",selectedAd=null,activeConversation=null,realtime=null;
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function toast(t){$("toast").textContent=t;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2600)}
+function modal(id,on=true){$(id).classList.toggle("show",on)}
+async function boot(){
+  const cfg=await fetch("/api/config").then(r=>r.json());
+  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey) throw new Error("Supabase config missing");
+  db=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+  await restoreUser();renderCategories();await loadAds();
 }
-async function ensureSupabaseSession(){
+async function ensureSession(){
   const {data:{session}}=await db.auth.getSession();
-  if(session) return session;
-  const {data,error}=await db.auth.signInAnonymously();
-  if(error) throw error;
-  return data.session;
+  if(session)return session;
+  const {data,error}=await db.auth.signInAnonymously();if(error)throw error;return data.session;
 }
 async function loginPi(){
   $("loginBtn").disabled=true;
   try{
-    await ensureSupabaseSession();
+    const session=await ensureSession();
     const auth=await Pi.authenticate(["username"],p=>console.warn("Incomplete payment",p));
-    const {data,error}=await db.functions.invoke("verify-pi",{body:{piAccessToken:auth.accessToken}});
-    if(error) throw error;
-    profile=data.profile;
-    renderUser();
-    await loadAds();
-  }catch(e){console.error(e);alert("فشل تسجيل الدخول. افتح الموقع داخل Pi Browser، وفعّل Anonymous Sign-ins في Supabase، وانشر Edge Function verify-pi.")}
+    const res=await fetch("/api/pi-login",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify({piAccessToken:auth.accessToken})});
+    const out=await res.json();if(!res.ok)throw new Error(out.error||"Login failed");
+    profile=out.profile;renderUser();toast("تم تسجيل الدخول بنجاح");await loadAds();
+  }catch(e){console.error(e);toast("تعذر تسجيل الدخول. افتح الموقع داخل Pi Browser.")}
   finally{$("loginBtn").disabled=false}
 }
-async function restoreProfile(){
-  const {data:{session}}=await db.auth.getSession();
-  if(!session)return;
-  const {data}=await db.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
-  profile=data;renderUser();
+async function restoreUser(){
+  const {data:{session}}=await db.auth.getSession();if(!session)return;
+  const {data}=await db.from("profiles").select("*").eq("id",session.user.id).maybeSingle();profile=data;renderUser();
+}
+function renderUser(){
+  $("userBox").classList.toggle("show",!!profile);$("loginBtn").style.display=profile?"none":"inline-flex";
+  if(profile){$("piName").textContent=profile.pi_username;$("avatar").textContent=(profile.pi_username||"P")[0].toUpperCase()}
 }
 function renderCategories(){
-  $("cats").innerHTML=categories.map(([n,i])=>`<button class="cat ${n===currentCategory?"active":""}" data-cat="${n}"><span>${i}</span>${n}</button>`).join("");
-  $("category").innerHTML=categories.slice(1).map(([n])=>`<option>${n}</option>`).join("");
+  $("categories").innerHTML=CATS.map(([n,i])=>`<button class="cat ${n===category?"active":""}" data-cat="${n}">${ICONS[i]}<strong>${n}</strong></button>`).join("");
+  $("category").innerHTML=CATS.slice(1).map(([n])=>`<option>${n}</option>`).join("");
 }
 async function loadAds(){
-  let query=db.from("ads").select("*,profiles!ads_owner_id_fkey(pi_username)").eq("status","active");
-  if(currentCategory!=="الكل")query=query.eq("category",currentCategory);
-  if($("city").value)query=query.eq("city",$("city").value);
-  if($("q").value.trim())query=query.ilike("title",`%${$("q").value.trim()}%`);
-  query=query.order($("sort").value==="low"?"price":$("sort").value==="high"?"price":"created_at",{ascending:$("sort").value==="low"});
-  const {data,error}=await query;
-  if(error){$("ads").innerHTML=`<div class="empty error">${esc(error.message)}</div>`;return}
-  ads=data||[];renderAds();
+  if(!db)return;
+  let q=db.from("ads").select("*,profiles!ads_owner_id_fkey(pi_username)").eq("status","active");
+  if(category!=="الكل")q=q.eq("category",category);if($("city").value)q=q.eq("city",$("city").value);
+  if($("q").value.trim())q=q.ilike("title",`%${$("q").value.trim()}%`);
+  q=q.order($("sort").value==="new"?"created_at":"price",{ascending:$("sort").value==="low"});
+  const {data,error}=await q;if(error)return toast(error.message);ads=data||[];$("adsCount").textContent=ads.length;renderAds();
 }
 function renderAds(){
-  $("ads").innerHTML=ads.length?ads.map(a=>`<article class="card"><img src="${esc(a.image_url||"https://placehold.co/800x550?text=Pi+Market")}" onerror="this.src='https://placehold.co/800x550?text=Pi+Market'"><div class="body"><div class="price">${Number(a.price).toLocaleString("ar-EG")} π</div><h3>${esc(a.title)}</h3><div class="meta"><span>${esc(a.city)}</span><span>${esc(a.category)}</span></div><button class="primary" style="width:100%;margin-top:12px" data-details="${a.id}">التفاصيل</button></div></article>`).join(""):`<div class="empty">لا توجد إعلانات</div>`;
+  $("ads").innerHTML=ads.length?ads.map(a=>`<article class="card"><img src="${esc(a.image_url||"https://placehold.co/900x650?text=Pi+Souq")}" onerror="this.src='https://placehold.co/900x650?text=Pi+Souq'"><div class="card-body"><div class="price">${Number(a.price).toLocaleString("ar-EG")} π</div><h3>${esc(a.title)}</h3><div class="meta"><span>${esc(a.city)}</span><span>${esc(a.category)}</span></div><button class="btn btn-dark" style="width:100%;margin-top:13px" data-details="${a.id}">عرض التفاصيل</button></div></article>`).join(""):'<div class="empty">لا توجد إعلانات مطابقة.</div>';
 }
 async function addAd(e){
-  e.preventDefault();if(!profile)return alert("سجل الدخول أولًا");
+  e.preventDefault();if(!profile)return loginPi();
   const row={owner_id:profile.id,title:$("title").value.trim(),description:$("description").value.trim(),category:$("category").value,city:$("adCity").value,price:Number($("price").value),image_url:$("image").value.trim()||null};
-  const {error}=await db.from("ads").insert(row);if(error)return alert(error.message);
-  e.target.reset();modal("adModal",false);await loadAds();
+  const {error}=await db.from("ads").insert(row);if(error)return toast(error.message);e.target.reset();modal("adModal",false);toast("تم نشر الإعلان");loadAds();
 }
-function showDetails(id){
-  selectedAd=ads.find(a=>a.id===id);if(!selectedAd)return;
-  $("dTitle").textContent=selectedAd.title;$("dPrice").textContent=`${Number(selectedAd.price).toLocaleString("ar-EG")} π`;
+function details(id){
+  selectedAd=ads.find(a=>a.id===id);if(!selectedAd)return;$("dTitle").textContent=selectedAd.title;$("dPrice").textContent=Number(selectedAd.price).toLocaleString("ar-EG")+" π";
   $("dDesc").textContent=selectedAd.description;$("dMeta").textContent=`${selectedAd.city} • البائع: ${selectedAd.profiles?.pi_username||"مستخدم Pi"}`;
-  $("dImage").src=selectedAd.image_url||"https://placehold.co/800x550?text=Pi+Market";modal("detailsModal");
+  $("dImage").src=selectedAd.image_url||"https://placehold.co/900x650?text=Pi+Souq";modal("detailsModal");
 }
 async function startConversation(){
-  if(!profile)return loginPi();
-  if(selectedAd.owner_id===profile.id)return alert("هذا إعلانك");
-  const {data,error}=await db.rpc("get_or_create_conversation",{p_ad_id:selectedAd.id,p_seller_id:selectedAd.owner_id});
-  if(error)return alert(error.message);
+  if(!profile)return loginPi();if(selectedAd.owner_id===profile.id)return toast("هذا إعلانك");
+  const {data,error}=await db.rpc("get_or_create_conversation",{p_ad_id:selectedAd.id,p_seller_id:selectedAd.owner_id});if(error)return toast(error.message);
   modal("detailsModal",false);modal("chatModal");await loadConversations(data);
 }
 async function loadConversations(selectId=null){
-  if(!profile)return;
-  const {data,error}=await db.from("conversation_members").select("conversation_id,conversations(id,ad_id,updated_at,ads(title))").eq("user_id",profile.id).order("joined_at",{ascending:false});
-  if(error)return;
-  const rows=data||[];
-  $("convos").innerHTML=rows.length?rows.map(r=>`<button class="convo ${r.conversation_id===(selectId||activeConversation)?"active":""}" data-convo="${r.conversation_id}">${esc(r.conversations.ads?.title||"محادثة")}</button>`).join(""):`<div class="empty">لا توجد محادثات</div>`;
-  if(selectId)await openConversation(selectId);
+  const {data,error}=await db.from("conversation_members").select("conversation_id,conversations(id,ads(title))").eq("user_id",profile.id);
+  if(error)return toast(error.message);const rows=data||[];$("convos").innerHTML=rows.length?rows.map(r=>`<button class="convo ${r.conversation_id===(selectId||activeConversation)?"active":""}" data-convo="${r.conversation_id}">${esc(r.conversations.ads?.title||"محادثة")}</button>`).join(""):'<div class="empty">لا توجد محادثات</div>';if(selectId)openConversation(selectId);
 }
 async function openConversation(id){
-  activeConversation=id;await loadConversations();
-  const {data,error}=await db.from("messages").select("*,profiles(pi_username)").eq("conversation_id",id).order("created_at");
-  if(error)return;
-  renderMessages(data||[]);
-  if(channel)await db.removeChannel(channel);
-  channel=db.channel("messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`conversation_id=eq.${id}`},async payload=>{
-    const {data}=await db.from("messages").select("*,profiles(pi_username)").eq("id",payload.new.id).single();
-    appendMessage(data);
-  }).subscribe();
+  activeConversation=id;await loadConversations();const {data}=await db.from("messages").select("*,profiles(pi_username)").eq("conversation_id",id).order("created_at");renderMessages(data||[]);
+  if(realtime)await db.removeChannel(realtime);realtime=db.channel("m-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`conversation_id=eq.${id}`},async p=>{const {data}=await db.from("messages").select("*,profiles(pi_username)").eq("id",p.new.id).single();appendMessage(data)}).subscribe();
 }
 function renderMessages(rows){$("messages").innerHTML="";rows.forEach(appendMessage)}
-function appendMessage(m){
-  const div=document.createElement("div");div.className="bubble "+(m.sender_id===profile.id?"mine":"");
-  div.innerHTML=`<strong>${esc(m.profiles?.pi_username||"مستخدم")}</strong><br>${esc(m.body)}`;$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
-}
-async function sendMessage(e){
-  e.preventDefault();if(!activeConversation)return alert("اختر محادثة");
-  const body=$("messageInput").value.trim();if(!body)return;
-  const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:profile.id,body});
-  if(error)return alert(error.message);$("messageInput").value="";
-}
-document.addEventListener("click",e=>{
-  const c=e.target.closest("[data-cat]"),d=e.target.closest("[data-details]"),x=e.target.closest("[data-close]"),v=e.target.closest("[data-convo]");
-  if(c){currentCategory=c.dataset.cat;renderCategories();loadAds()} if(d)showDetails(d.dataset.details);if(x)modal(x.dataset.close,false);if(v)openConversation(v.dataset.convo);
-  if(e.target.classList.contains("modal"))modal(e.target.id,false);
-});
-$("loginBtn").onclick=loginPi;$("addBtn").onclick=()=>profile?modal("adModal"):loginPi;$("chatBtn").onclick=async()=>{if(!profile)return loginPi();modal("chatModal");await loadConversations()};
-$("contactBtn").onclick=startConversation;$("adForm").onsubmit=addAd;$("sendForm").onsubmit=sendMessage;
-$("search").onclick=loadAds;$("q").oninput=loadAds;$("city").onchange=loadAds;$("sort").onchange=loadAds;
-renderCategories();restoreProfile().then(loadAds);
+function appendMessage(m){const el=document.createElement("div");el.className="bubble "+(m.sender_id===profile.id?"mine":"");el.innerHTML=`<strong>${esc(m.profiles?.pi_username||"مستخدم")}</strong><br>${esc(m.body)}`;$("messages").appendChild(el);$("messages").scrollTop=$("messages").scrollHeight}
+async function sendMessage(e){e.preventDefault();if(!activeConversation)return toast("اختر محادثة");const body=$("messageInput").value.trim();if(!body)return;const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:profile.id,body});if(error)return toast(error.message);$("messageInput").value=""}
+document.addEventListener("click",e=>{const c=e.target.closest("[data-cat]"),d=e.target.closest("[data-details]"),x=e.target.closest("[data-close]"),v=e.target.closest("[data-convo]");
+ if(c){category=c.dataset.cat;renderCategories();loadAds()}if(d)details(d.dataset.details);if(x)modal(x.dataset.close,false);if(v)openConversation(v.dataset.convo);if(e.target.classList.contains("modal"))modal(e.target.id,false)});
+$("loginBtn").onclick=loginPi;$("addBtn").onclick=$("heroAdd").onclick=()=>profile?modal("adModal"):loginPi;$("chatBtn").onclick=async()=>{if(!profile)return loginPi();modal("chatModal");loadConversations()};
+$("contactBtn").onclick=startConversation;$("adForm").onsubmit=addAd;$("sendForm").onsubmit=sendMessage;$("q").oninput=loadAds;$("city").onchange=loadAds;$("sort").onchange=loadAds;
+boot().catch(e=>{console.error(e);toast("أضف متغيرات البيئة في Vercel ثم أعد النشر")});
 </script>
-</body></html>
+</body>
+</html>
