@@ -12,11 +12,30 @@
 <div class="modal" id="details"><div class="modalCard"><div class="row" style="justify-content:space-between"><h2 id="detailTitle"></h2><button class="ghost" onclick="closeDetails()">Close</button></div><div class="gallery" id="detailGallery"></div><p id="detailDesc"></p><div class="row"><span class="badge" id="detailCat"></span><span class="badge" id="detailNet"></span><button class="primary" id="openApp">Open website</button></div></div></div><div class="toast" id="toast"></div>
 <script>
 const API={apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
-const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),apps=[],category='All',network='mainnet';
+const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='mainnet';
 addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();renderFilters();await loadApps()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}}
-async function loginWithPi(){if(auth?.token)return toast('Already signed in');if(!window.Pi)return toast('Open inside Pi Browser');try{const a=await Pi.authenticate(['username','payments'],p=>console.warn('Incomplete payment',p));const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:a.accessToken})});const d=await r.json();if(!r.ok)throw Error(d.error);auth=d;localStorage.setItem('apphub_auth',JSON.stringify(auth));restoreAuth();toast('Signed in successfully')}catch(e){toast(e.message||'Sign-in failed')}}
+function onIncompletePaymentFound(payment){console.warn('Incomplete Pi payment found:',payment)}
+async function authenticatePi(){
+  if(!window.Pi)throw Error('Open inside Pi Browser');
+  piAuth=await Pi.authenticate(['username','payments'],onIncompletePaymentFound);
+  if(!piAuth?.accessToken)throw Error('Pi authentication did not return an access token');
+  return piAuth;
+}
+async function loginWithPi(){
+  try{
+    const a=await authenticatePi();
+    const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:a.accessToken})});
+    const d=await r.json();
+    if(!r.ok)throw Error(d.error||'Pi sign-in failed');
+    auth=d;
+    localStorage.setItem('apphub_auth',JSON.stringify(auth));
+    restoreAuth();
+    toast('Signed in with payment permission');
+    return auth;
+  }catch(e){toast(e.message||'Sign-in failed');throw e}
+}
 function renderFilters(){networkChips.innerHTML=['mainnet','testnet'].map(n=>`<button class="chip ${n===network?'active':''}" onclick="network='${n}';renderFilters();renderPublic()">${n==='mainnet'?'Mainnet':'Testnet'}</button>`).join('');categoryChips.innerHTML=cats.map(c=>`<button class="chip ${c===category?'active':''}" onclick="category='${c}';renderFilters();renderPublic()">${c}</button>`).join('')}
 async function loadApps(){try{const r=await fetch(API.apps),d=await r.json();if(!r.ok)throw Error(d.error);apps=d.apps||[];renderPublic()}catch(e){homeGrid.innerHTML='<div class="empty">Unable to load apps.</div>';toast(e.message)}}
 function filtered(){const q=search.value.toLowerCase().trim();return apps.filter(a=>a.network===network&&(category==='All'||a.category===category)&&(`${a.name} ${a.short_description} ${a.category}`.toLowerCase().includes(q)))}
@@ -26,7 +45,33 @@ function details(id){const a=apps.find(x=>x.id===id);if(!a)return;detailTitle.te
 function showPage(name,btn){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(name+'Page').classList.add('active');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(name==='profile'){loadMyApps();if(['admin','moderator'].includes(auth?.user?.role))loadAdmin()}if(name==='add'&&!auth?.token)loginWithPi()}
 function previewFile(input,id){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>document.getElementById(id).innerHTML=`<img src="${r.result}">`;r.readAsDataURL(f)}function toDataUrl(file){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)})}
 async function upload(file,kind){const dataUrl=await toDataUrl(file);const r=await fetch(API.upload,{method:'POST',headers:headers(),body:JSON.stringify({dataUrl,kind})});const d=await r.json();if(!r.ok)throw Error(d.error);return d.url}
-async function createPayment(){return new Promise((resolve,reject)=>Pi.createPayment({amount:1,memo:'AppHub app submission fee',metadata:{purpose:'app_submission'}},{onReadyForServerApproval:async paymentId=>{const r=await fetch(API.approve,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,purpose:'app_submission',amountPi:1})});if(!r.ok)reject(Error((await r.json()).error))},onReadyForServerCompletion:async(paymentId,txid)=>{const r=await fetch(API.complete,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,txid})});const d=await r.json();if(r.ok)resolve(paymentId);else reject(Error(d.error))},onCancel:()=>reject(Error('Payment cancelled')),onError:e=>reject(e)}))}
+async function createPayment(){
+  await authenticatePi();
+  return new Promise((resolve,reject)=>{
+    Pi.createPayment(
+      {amount:1,memo:'AppHub app submission fee',metadata:{purpose:'app_submission',username:auth?.user?.username||''}},
+      {
+        onReadyForServerApproval:async paymentId=>{
+          try{
+            const r=await fetch(API.approve,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,purpose:'app_submission',amountPi:1})});
+            const d=await r.json();
+            if(!r.ok)throw Error(d.error||'Payment approval failed');
+          }catch(error){reject(error)}
+        },
+        onReadyForServerCompletion:async(paymentId,txid)=>{
+          try{
+            const r=await fetch(API.complete,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,txid})});
+            const d=await r.json();
+            if(!r.ok)throw Error(d.error||'Payment completion failed');
+            resolve(paymentId);
+          }catch(error){reject(error)}
+        },
+        onCancel:paymentId=>reject(Error('Payment cancelled'+(paymentId?' ('+paymentId+')':''))),
+        onError:error=>reject(error instanceof Error?error:Error(error?.message||'Pi payment failed'))
+      }
+    );
+  });
+}
 appForm.addEventListener('submit',async e=>{e.preventDefault();if(!auth?.token)return loginWithPi();if(!window.Pi)return toast('Open inside Pi Browser to pay');const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;try{const paymentId=await createPayment();const fd=new FormData(e.target),shots=[...document.querySelectorAll('.shotFile')];const [iconUrl,...screenshotUrls]=await Promise.all([upload(logoFile.files[0],'logo'),...shots.map((x,i)=>upload(x.files[0],'screenshot-'+(i+1)))]);const payload={name:fd.get('name'),category:fd.get('category'),network:fd.get('network'),websiteUrl:fd.get('websiteUrl'),shortDescription:fd.get('shortDescription'),developerName:fd.get('developerName'),contactEmail:fd.get('contactEmail'),iconUrl,screenshotUrls,paymentId};const r=await fetch(API.submit,{method:'POST',headers:headers(),body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw Error(d.error);e.target.reset();toast('Submitted and pending admin review');showPage('profile',document.querySelectorAll('.navbtn')[3])}catch(err){toast(err.message||'Submission failed')}finally{btn.disabled=false}});
 async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">Sign in with Pi first.</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);myApps.innerHTML=d.apps.length?d.apps.map(a=>card(a)+`<div class="row" style="margin:-8px 0 18px"><button class="ghost" onclick="editApp('${a.id}')">Edit & resubmit</button><button class="danger" onclick="deleteApp('${a.id}')">Delete</button></div>`).join(''):'<div class="empty">You have not submitted any apps.</div>';window.myAppData=d.apps}
 async function deleteApp(id){if(!confirm('Delete this app?'))return;const r=await fetch(API.manage+'?id='+id,{method:'DELETE',headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);toast('Deleted');loadMyApps()}
