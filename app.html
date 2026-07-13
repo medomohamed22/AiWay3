@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>AppHub — App details</title>
+<style>
+:root{--p:#6d44d7;--ink:#111115;--mut:#797980;--line:#e8e8ec;--bg:#fff;--blue:#1889e6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.top{position:sticky;top:0;z-index:20;background:#fffc;border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}.topin{max-width:900px;margin:auto;height:62px;padding:0 16px;display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center}.iconBtn{width:38px;height:38px;display:grid;place-items:center;border:0;background:transparent;border-radius:50%;color:#222}.iconBtn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.miniBrand{display:flex;align-items:center;gap:9px;min-width:0;font-weight:800}.miniBrand img{width:31px;height:31px;border-radius:8px;object-fit:cover}.miniBrand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page{max-width:900px;margin:auto;padding:20px 16px 48px}.appHead{display:grid;grid-template-columns:98px minmax(0,1fr) auto;gap:16px;align-items:center;padding:10px 0 22px}.appLogo{width:98px;height:98px;border-radius:24px;object-fit:cover;border:1px solid var(--line);box-shadow:0 5px 18px #00000012}.appName{font-size:28px;line-height:1.1;margin:0 0 7px}.tagline{margin:0;color:var(--mut);line-height:1.45}.network{display:inline-flex;margin-top:9px;border-radius:999px;padding:5px 9px;background:#dcf7ed;border:1px solid #a5e1cd;color:#15936a;font-size:11px;font-weight:900;text-transform:uppercase}.network.testnet{background:#fff2d9;border-color:#efd49d;color:#bf821c}.get{border:0;background:var(--blue);color:#fff;border-radius:999px;padding:11px 23px;font-size:18px;font-weight:850}.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -16px 25px;padding:14px 16px}.stat{text-align:center;border-right:1px solid var(--line);padding:3px 7px;min-width:0}.stat:last-child{border-right:0}.stat small{display:block;color:#999;font-size:9px;text-transform:uppercase;font-weight:800;letter-spacing:.05em}.stat b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stars{color:#1389e8;letter-spacing:-1px;font-size:11px}.section{padding:18px 0;border-bottom:1px solid var(--line)}.section h2{font-size:20px;margin:0 0 10px}.section p{font-size:15px;line-height:1.6;margin:0;color:#333}.version{color:#999;font-size:12px;margin-bottom:7px}.screens{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}.screens img{width:min(75vw,320px);height:490px;object-fit:cover;object-position:top;border-radius:19px;border:1px solid var(--line);scroll-snap-align:start;flex:0 0 auto;background:#f2f2f4}.infoRow{display:flex;justify-content:space-between;gap:18px;padding:15px 0;border-bottom:1px solid #f0f0f2}.infoRow:last-child{border-bottom:0}.infoRow span:first-child{color:#96969b}.infoRow span:last-child{text-align:right}.link{color:var(--blue);text-decoration:none;font-weight:650}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.chip{padding:7px 12px;border-radius:999px;background:#f2f2f4;color:#555;font-size:12px}.loading,.error{padding:80px 20px;text-align:center;color:var(--mut)}@media(max-width:620px){.page{padding:14px 12px 40px}.appHead{grid-template-columns:82px minmax(0,1fr) auto;gap:12px}.appLogo{width:82px;height:82px;border-radius:20px}.appName{font-size:22px}.tagline{font-size:13px}.get{padding:9px 18px;font-size:16px}.stats{margin-left:-12px;margin-right:-12px;padding-left:8px;padding-right:8px}.screens img{height:430px;width:76vw}.stat b{font-size:12px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topin"><button class="iconBtn" onclick="history.length>1?history.back():location.href='index.html'" aria-label="Back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="miniBrand"><img id="topLogo" alt=""><span id="topName">AppHub</span></div><button class="iconBtn" onclick="location.href='index.html'" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button></div></header>
+<main id="content"><div class="loading">Loading app…</div></main>
+<script>
+const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+function safeUrl(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)?u.href:'#'}catch{return '#'}}
+async function load(){
+ const id=new URLSearchParams(location.search).get('id');
+ if(!id){content.innerHTML='<div class="error">App not found.</div>';return}
+ try{
+  const r=await fetch('/api/apps'); const d=await r.json();
+  if(!r.ok) throw new Error(d.error||'Unable to load app');
+  const a=(d.apps||[]).find(x=>String(x.id)===id);
+  if(!a) throw new Error('This app is unavailable or not published.');
+  document.title=`${a.name} — AppHub`; topLogo.src=a.icon_url; topName.textContent=a.name;
+  const shots=(a.screenshot_urls||[]).slice(0,3);
+  const url=safeUrl(a.website_url);
+  content.innerHTML=`<div class="page">
+   <section class="appHead"><img class="appLogo" src="${esc(a.icon_url)}" alt="${esc(a.name)} logo"><div><h1 class="appName">${esc(a.name)}</h1><p class="tagline">${esc(a.short_description||'Discover this Pi application.')}</p><span class="network ${a.network==='testnet'?'testnet':''}">${esc(a.network||'mainnet')}</span></div><button class="get" onclick="openWebsite()">Get</button></section>
+   <section class="stats"><div class="stat"><small>Ratings</small><b>5.0</b><div class="stars">★★★★★</div></div><div class="stat"><small>Price</small><b>Free</b></div><div class="stat"><small>Network</small><b>${esc(a.network||'Mainnet')}</b></div><div class="stat"><small>Category</small><b>${esc(a.category||'App')}</b></div></section>
+   <section class="section"><h2>What's New</h2><div class="version">Latest version · Recently updated</div><p>${esc(a.name)} is available on AppHub.</p></section>
+   <section class="section"><h2>Preview</h2><div class="screens">${shots.map(x=>`<img src="${esc(x)}" alt="${esc(a.name)} screenshot">`).join('')}</div><p>${esc(a.short_description||'')}</p></section>
+   <section class="section"><h2>Information</h2><div class="infoRow"><span>Provider</span><span>${esc(a.developer_name||'Developer')}</span></div><div class="infoRow"><span>Category</span><span>${esc(a.category||'App')}</span></div><div class="infoRow"><span>Compatibility</span><span>Any Device</span></div><div class="infoRow"><span>Languages</span><span>English</span></div><div class="infoRow"><span>Network</span><span>${esc(a.network||'Mainnet')}</span></div><div class="infoRow"><span>Developer Website</span><a class="link" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a></div><div class="chips"><span class="chip">${esc(a.category||'App')}</span><span class="chip">Pi Ecosystem</span><span class="chip">Web3</span></div></section>
+  </div>`;
+  window.currentUrl=url;
+ }catch(e){content.innerHTML=`<div class="error">${esc(e.message||'Unable to load app.')}</div>`}
+}
+function openWebsite(){if(window.currentUrl&&window.currentUrl!=='#')open(window.currentUrl,'_blank','noopener')}
+load();
+</script>
+</body></html>
