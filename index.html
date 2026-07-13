@@ -104,7 +104,7 @@ button,input,select,textarea{font:inherit}.container{width:min(100%,920px);margi
       <div class="form-group"><label class="form-label"><i class="fa-solid fa-folder-open"></i>القسم</label><select id="adCategory" class="select" required></select></div>
       <div class="form-group"><label class="form-label"><i class="fa-solid fa-location-dot"></i>المدينة</label><select id="adCity" class="select" required><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div>
       <div class="form-group"><label class="form-label"><i class="fa-solid fa-coins"></i>السعر بالـ Pi</label><input id="adPrice" class="input" type="number" min="0" step=".01" required></div>
-      <div class="form-group"><label class="form-label"><i class="fa-solid fa-align-left"></i>الوصف</label><textarea id="adDescription" class="input textarea" required maxlength="2000"></textarea></div>
+      <div class="form-group"><label class="form-label"><i class="fa-solid fa-align-left"></i>الوصف</label><textarea id="adDescription" class="input textarea" required minlength="3" maxlength="2000" placeholder="اكتب وصفًا من 3 أحرف على الأقل"></textarea><small style="color:var(--muted)">الحد الأدنى 3 أحرف</small></div>
       <button id="publishBtn" class="btn btn-primary" style="width:100%">نشر الإعلان</button>
     </form>
   </div>
@@ -330,12 +330,48 @@ async function compressAndUpload(file,index,total){
   return data.publicUrl
 }
 $("adForm").addEventListener("submit",async e=>{
-  e.preventDefault();if(!profile)return loginPi();const btn=$("publishBtn");btn.disabled=true;$("uploadProgressWrap").classList.remove("hidden");
+  e.preventDefault();
+
+  if(!profile) return loginPi();
+
+  const title=$("adTitle").value.trim();
+  const description=$("adDescription").value.trim();
+
+  if(title.length < 3){
+    showToast("عنوان الإعلان يجب أن يكون 3 أحرف على الأقل","error");
+    $("adTitle").focus();
+    return;
+  }
+
+  if(description.length < 3){
+    showToast("الوصف يجب أن يكون 3 أحرف على الأقل","error");
+    $("adDescription").focus();
+    return;
+  }
+
+  const btn=$("publishBtn");
+  btn.disabled=true;
+  $("uploadProgressWrap").classList.remove("hidden");
+
   const uploaded=[];try{
     for(let i=0;i<selectedFiles.length;i++)uploaded.push(await compressAndUpload(selectedFiles[i],i,selectedFiles.length));
     $("uploadProgress").style.width="100%";$("uploadText").textContent="جارٍ حفظ الإعلان...";
-    const row={owner_id:profile.id,title:$("adTitle").value.trim(),description:$("adDescription").value.trim(),category:$("adCategory").value,city:$("adCity").value,price:Number($("adPrice").value),images:uploaded,image_url:uploaded[0]||null};
-    const {error:insertError}=await db.from("ads").insert(row);
+    const row={owner_id:profile.id,title,description,category:$("adCategory").value,city:$("adCity").value,price:Number($("adPrice").value),images:uploaded,image_url:uploaded[0]||null};
+    let {error:insertError}=await db.from("ads").insert(row);
+
+    // توافق مؤقت: إذا لم يكن عمود images موجودًا بعد، احفظ الصورة الأولى فقط.
+    if(insertError?.code==="PGRST204" && /images/i.test(insertError.message||"")){
+      const fallbackRow={...row};
+      delete fallbackRow.images;
+
+      const fallbackResult=await db.from("ads").insert(fallbackRow);
+      insertError=fallbackResult.error;
+
+      if(!insertError){
+        showToast("تم نشر الإعلان بالصورة الأولى فقط. شغّل SQL دعم الصور لحفظ حتى 3 صور.");
+      }
+    }
+
     if(insertError){
       const err=new Error("AD_INSERT_FAILED: "+insertError.message);
       err.details=insertError;
