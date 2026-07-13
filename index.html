@@ -77,7 +77,7 @@ async function createPayment(appPayload){
     );
   });
 }
-appForm.addEventListener('submit',async e=>{
+document.getElementById('appForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!auth?.token){await loginWithPi();if(!auth?.token)return}
   if(!window.Pi)return toast('Open inside Pi Browser to pay');
@@ -85,10 +85,12 @@ appForm.addEventListener('submit',async e=>{
   btn.disabled=true;
   const originalText=btn.textContent;
   try{
-    const fd=new FormData(e.target),shots=[...document.querySelectorAll('.shotFile')];
-    if(!logoFile.files[0]||shots.some(x=>!x.files[0]))throw new Error('Choose one logo and exactly 3 screenshots');
+    const fd=new FormData(e.target);
+    const logoInput=document.getElementById('logoFile');
+    const shots=[...document.querySelectorAll('.shotFile')];
+    if(!logoInput?.files?.[0]||shots.length!==3||shots.some(x=>!x.files?.[0]))throw new Error('Choose one logo and exactly 3 screenshots');
     btn.textContent='Uploading images...';
-    const [iconUrl,...screenshotUrls]=await Promise.all([upload(logoFile.files[0],'logo'),...shots.map((x,i)=>upload(x.files[0],'screenshot-'+(i+1)))]);
+    const [iconUrl,...screenshotUrls]=await Promise.all([upload(logoInput.files[0],'logo'),...shots.map((x,i)=>upload(x.files[0],'screenshot-'+(i+1)))]);
     const payload={name:fd.get('name'),category:fd.get('category'),network:fd.get('network'),websiteUrl:fd.get('websiteUrl'),shortDescription:fd.get('shortDescription'),developerName:fd.get('developerName'),contactEmail:fd.get('contactEmail'),iconUrl,screenshotUrls};
     btn.textContent='Complete payment...';
     await createPayment(payload);
