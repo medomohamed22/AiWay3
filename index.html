@@ -154,6 +154,7 @@ const ICONS={
 };
 const CATS=[["الكل","all"],["سيارات","car"],["عقارات","home"],["موبايلات","phone"],["إلكترونيات","laptop"],["أثاث","sofa"],["وظائف","briefcase"],["خدمات","tools"],["أخرى","box"]];
 let db,profile=null,ads=[],category="الكل",selectedAd=null,activeConversation=null,realtime=null;
+let bootPromise=null,bootError=null,bootFinished=false;
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 function toast(t){$("toast").textContent=t;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2600)}
 function modal(id,on=true){$(id).classList.toggle("show",on)}
@@ -183,8 +184,18 @@ function showLoginError(error,extra={}){
 async function boot(){
   let configResponse=null;
   let configText="";
+  bootFinished=false;
+  bootError=null;
+
   try{
-    configResponse=await fetch("/api/config",{cache:"no-store"});
+    $("loginBtn").disabled=true;
+    $("loginBtn").lastChild.textContent=" جاري التهيئة...";
+
+    configResponse=await fetch("/api/config",{
+      method:"GET",
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
+    });
     configText=await configResponse.text();
 
     let cfg;
@@ -192,30 +203,47 @@ async function boot(){
       cfg=configText?JSON.parse(configText):null;
     }catch{
       throw new Error(
-        "رد /api/config ليس JSON. HTTP "+configResponse.status+
-        ". الرد: "+configText.slice(0,1000)
+        "رد /api/config ليس JSON صالحًا. HTTP "+configResponse.status+
+        ". بداية الرد: "+configText.slice(0,1200)
       );
     }
 
     if(!configResponse.ok){
       throw new Error(
-        "فشل تحميل /api/config. HTTP "+configResponse.status+
+        "فشل /api/config بحالة HTTP "+configResponse.status+
         ". الرد: "+JSON.stringify(cfg)
       );
     }
 
     if(!cfg?.supabaseUrl){
-      throw new Error("SUPABASE_URL غير موجود في رد /api/config");
-    }
-    if(!cfg?.supabaseAnonKey){
-      throw new Error("SUPABASE_ANON_KEY غير موجود في رد /api/config");
+      throw new Error("رد /api/config لا يحتوي supabaseUrl");
     }
 
-    db=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+    if(!cfg?.supabaseAnonKey){
+      throw new Error("رد /api/config لا يحتوي supabaseAnonKey");
+    }
+
+    if(typeof window.supabase==="undefined"){
+      throw new Error("مكتبة Supabase JS لم يتم تحميلها من CDN");
+    }
+
+    db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+
+    // اختبار بسيط للتأكد أن العميل تم إنشاؤه.
+    if(!db?.auth || !db?.from){
+      throw new Error("تم استدعاء createClient لكن العميل الناتج غير صالح");
+    }
+
     await restoreUser();
     renderCategories();
     await loadAds();
+    bootFinished=true;
+    return true;
+
   }catch(e){
+    bootError=e;
+    db=null;
+
     showLoginError(e,{
       stage:"boot_load_supabase_config",
       configResponse:{
@@ -223,9 +251,23 @@ async function boot(){
         statusText:configResponse?.statusText??null,
         body:configText
       },
-      expectedEndpoint:location.origin+"/api/config"
+      expectedEndpoint:location.origin+"/api/config",
+      hint:"افتح /api/config مباشرة وتأكد أنه يرجع JSON يحتوي supabaseUrl وsupabaseAnonKey"
     });
-    throw e;
+
+    return false;
+  }finally{
+    $("loginBtn").disabled=false;
+    if(!profile){
+      $("loginBtn").innerHTML=`
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+          <path d="m10 17 5-5-5-5"></path>
+          <path d="M15 12H3"></path>
+        </svg>
+        دخول Pi
+      `;
+    }
   }
 }
 async function ensureSession(){
@@ -250,7 +292,7 @@ async function ensureSession(){
 }
 async function loginPi(){
   $("loginBtn").disabled=true;
-  let stage="start";
+  let stage="wait_for_boot";
   let session=null;
   let piAuth=null;
   let responseText="";
@@ -258,8 +300,24 @@ async function loginPi(){
   let responseHeaders={};
 
   try{
+    if(!bootPromise){
+      bootPromise=boot();
+    }
+
+    const ready=await bootPromise;
+
+    if(!ready || !db){
+      const startupError=bootError || new Error("فشل تهيئة التطبيق لسبب غير معروف");
+      showLoginError(startupError,{
+        stage:"wait_for_boot",
+        bootFinished,
+        bootSucceeded:Boolean(ready && db),
+        expectedConfigUrl:location.origin+"/api/config"
+      });
+      return;
+    }
+
     stage="ensure_supabase_session";
-    if(!db)throw new Error("Supabase client غير مهيأ. تحقق من /api/config");
     session=await ensureSession();
 
     stage="pi_authenticate";
@@ -408,7 +466,7 @@ window.addEventListener("unhandledrejection",event=>{
 
 $("loginBtn").onclick=loginPi;$("addBtn").onclick=$("heroAdd").onclick=()=>profile?modal("adModal"):loginPi;$("chatBtn").onclick=async()=>{if(!profile)return loginPi();modal("chatModal");loadConversations()};
 $("contactBtn").onclick=startConversation;$("adForm").onsubmit=addAd;$("sendForm").onsubmit=sendMessage;$("q").oninput=loadAds;$("city").onchange=loadAds;$("sort").onchange=loadAds;
-boot().catch(e=>{console.error(e);toast("أضف متغيرات البيئة في Vercel ثم أعد النشر")});
+bootPromise=boot();
 </script>
 </body>
 </html>
