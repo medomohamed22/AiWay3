@@ -181,10 +181,52 @@ function showLoginError(error,extra={}){
   toast("فشل تسجيل الدخول — افتح تفاصيل الخطأ");
 }
 async function boot(){
-  const cfg=await fetch("/api/config").then(r=>r.json());
-  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey) throw new Error("Supabase config missing");
-  db=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
-  await restoreUser();renderCategories();await loadAds();
+  let configResponse=null;
+  let configText="";
+  try{
+    configResponse=await fetch("/api/config",{cache:"no-store"});
+    configText=await configResponse.text();
+
+    let cfg;
+    try{
+      cfg=configText?JSON.parse(configText):null;
+    }catch{
+      throw new Error(
+        "رد /api/config ليس JSON. HTTP "+configResponse.status+
+        ". الرد: "+configText.slice(0,1000)
+      );
+    }
+
+    if(!configResponse.ok){
+      throw new Error(
+        "فشل تحميل /api/config. HTTP "+configResponse.status+
+        ". الرد: "+JSON.stringify(cfg)
+      );
+    }
+
+    if(!cfg?.supabaseUrl){
+      throw new Error("SUPABASE_URL غير موجود في رد /api/config");
+    }
+    if(!cfg?.supabaseAnonKey){
+      throw new Error("SUPABASE_ANON_KEY غير موجود في رد /api/config");
+    }
+
+    db=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+    await restoreUser();
+    renderCategories();
+    await loadAds();
+  }catch(e){
+    showLoginError(e,{
+      stage:"boot_load_supabase_config",
+      configResponse:{
+        status:configResponse?.status??null,
+        statusText:configResponse?.statusText??null,
+        body:configText
+      },
+      expectedEndpoint:location.origin+"/api/config"
+    });
+    throw e;
+  }
 }
 async function ensureSession(){
   const {data:{session},error:getSessionError}=await db.auth.getSession();
