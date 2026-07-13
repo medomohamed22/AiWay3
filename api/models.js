@@ -1,4 +1,4 @@
-import { getApiKey, handleError, json, methodNotAllowed, readUpstreamError } from './_lib/http.js';
+import { fetchWithTimeout, getApiKey, handleError, sendJson, methodNotAllowed, readUpstreamError } from './_lib/http.js';
 
 const CATALOG_URL = 'https://gen.pollinations.ai/models';
 
@@ -69,10 +69,10 @@ export default async function handler(req, res) {
     const headers = { Accept: 'application/json' };
     if (key) headers.Authorization = `Bearer ${key}`;
 
-    const response = await fetch(CATALOG_URL, { headers, cache: 'no-store' });
+    const response = await fetchWithTimeout(CATALOG_URL, { headers, cache: 'no-store' }, 15000);
     if (!response.ok) {
       const message = await readUpstreamError(response, `Could not load models (${response.status}).`);
-      return json(res, response.status, { error: message, models: [] });
+      return sendJson(res, response.status, { ok: false, error: message, models: [] });
     }
 
     const payload = await response.json();
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       (a, b) => (order[a.type] - order[b.type]) || a.name.localeCompare(b.name)
     );
 
-    return json(res, 200, { models, count: models.length });
+    return sendJson(res, 200, { ok: true, models, count: models.length });
   } catch (error) {
     return handleError(res, error);
   }
