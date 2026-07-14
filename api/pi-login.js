@@ -1,8 +1,9 @@
-import { allowMethods, db, json, signAppToken } from './_lib.js';
+import { allowMethods, db, handleError, json, rateLimit, signAppToken } from './_lib.js';
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ['POST'])) return;
   try {
+    await rateLimit(req,{key:'pi-login',limit:15,windowSeconds:600});
     const accessToken = String(req.body?.accessToken || '').trim();
     if (!accessToken) return json(res, 400, { error: 'Pi access token is required' });
 
@@ -27,8 +28,5 @@ export default async function handler(req, res) {
 
     const token = await signAppToken(user);
     return json(res, 200, { token, user });
-  } catch (error) {
-    console.error(error);
-    return json(res, 500, { error: 'Unable to complete Pi sign-in' });
-  }
+  } catch (error) { return handleError(error,res,'Unable to complete Pi sign-in'); }
 }

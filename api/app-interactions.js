@@ -1,11 +1,11 @@
-import { allowMethods, cleanText, db, handleError, json, requireUser } from './_lib.js';
+import { allowMethods, cleanText, db, handleError, json, rateLimit, requireUser } from './_lib.js';
 
 const REPORT_REASONS=['not_working','scam','wrong_link','impersonation','inappropriate','other'];
 
 export default async function handler(req,res){
   if(!allowMethods(req,res,['GET','POST']))return;
   try{
-    const supabase=db();
+    const supabase=db();await rateLimit(req,{key:'app-interactions',limit:80,windowSeconds:300});
     if(req.method==='GET'){
       const user=await requireUser(req);
       const appId=String(req.query?.appId||'');
