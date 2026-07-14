@@ -31,3 +31,10 @@ Run `sql/engagement-features.sql` after the base schema. It adds:
 - Developer analytics in Profile
 - User reports and admin report review
 - Admin-controlled AppHub Verified badges
+
+## v15 submission/edit update
+- New submissions require a logo and at least one screenshot; screenshots 2 and 3 are optional.
+- Developer contact email is optional.
+- Uploaded image previews include a remove button.
+- Owners can reopen the full submission form, edit every field/image, and resubmit for review without another payment.
+- Existing Supabase projects must run `sql/optional-screenshots-email-update.sql` once.
