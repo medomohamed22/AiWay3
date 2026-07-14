@@ -4,6 +4,15 @@ export default async function handler(req,res){
  try{
   const user=await requireUser(req);requireAdmin(user);const supabase=db();
   if(req.method==='GET'){
+   if(String(req.query?.mode||'')==='stats'){
+    const [{data:payments,error:pErr},{count:pending,error:aErr}]=await Promise.all([
+     supabase.from('payments').select('amount_pi,purpose,status,created_at').eq('status','completed').order('created_at',{ascending:false}),
+     supabase.from('apps').select('*',{count:'exact',head:true}).eq('status','pending')
+    ]);
+    if(pErr||aErr)throw pErr||aErr;
+    const total=(payments||[]).reduce((sum,payment)=>sum+Number(payment.amount_pi||0),0);
+    return json(res,200,{totalRevenuePi:total,pendingApps:pending||0,payments:payments||[]});
+   }
    const [{data:apps,error},{data:reports,error:rErr}]=await Promise.all([
     supabase.from('apps').select('*,users!apps_owner_id_fkey(username)').order('created_at',{ascending:false}),
     supabase.from('app_reports').select('id,app_id,reason,details,status,created_at,users!app_reports_reporter_id_fkey(username)').order('created_at',{ascending:false})

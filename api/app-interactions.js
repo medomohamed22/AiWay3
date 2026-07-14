@@ -3,13 +3,21 @@ import { allowMethods, cleanText, db, handleError, json, requireUser } from './_
 const REPORT_REASONS=['not_working','scam','wrong_link','impersonation','inappropriate','other'];
 
 export default async function handler(req,res){
-  if(!allowMethods(req,res,['POST']))return;
+  if(!allowMethods(req,res,['GET','POST']))return;
   try{
+    const supabase=db();
+    if(req.method==='GET'){
+      const user=await requireUser(req);
+      const appId=String(req.query?.appId||'');
+      if(!appId)return json(res,400,{error:'Missing app id'});
+      const {data,error}=await supabase.from('app_ratings').select('stars').eq('app_id',appId).eq('user_id',user.id).maybeSingle();
+      if(error)throw error;
+      return json(res,200,{stars:data?.stars||0});
+    }
     const body=req.body||{};
     const action=String(body.action||'');
     const appId=String(body.appId||'');
     if(!appId)return json(res,400,{error:'Missing app id'});
-    const supabase=db();
     const {data:app,error:appError}=await supabase.from('apps').select('id,status').eq('id',appId).maybeSingle();
     if(appError)throw appError;
     if(!app||app.status!=='published')return json(res,404,{error:'App not found'});
