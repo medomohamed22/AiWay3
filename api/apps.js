@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     await supabase.from('apps').update({is_featured:false}).eq('is_featured',true).lt('featured_until',new Date().toISOString());
     const { data, error } = await supabase
       .from('apps')
-      .select('id,name,slug,category,network,short_description,website_url,icon_url,screenshot_urls,rating,is_featured,featured_until,developer_name,created_at')
+      .select('id,name,slug,category,network,short_description,website_url,icon_url,screenshot_urls,rating,ratings_count,views_count,get_clicks_count,is_verified,is_featured,featured_until,developer_name,created_at')
       .eq('status', 'published')
       .order('is_featured', { ascending: false })
       .order('featured_until', { ascending: false, nullsFirst: false })
