@@ -70,7 +70,7 @@ a.back{color:var(--pd);font-weight:700;text-decoration:none;font-size:13.5px;dis
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:#211b2c;color:#fff;padding:12px 17px;border-radius:999px;transition:.2s;z-index:50;font-size:13.5px;box-shadow:0 12px 30px -10px #00000055}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .row{display:flex;gap:7px;flex-wrap:wrap}
-.meta{color:var(--mut2);font-size:12px}
+.meta{color:var(--mut2);font-size:12px}.reportBox{margin-top:14px;padding:12px;border:1px solid #ffd2d8;background:#fff7f8;border-radius:13px}.reportItem{padding:8px 0;border-bottom:1px solid #f2dfe2;font-size:12px}.reportItem:last-child{border-bottom:0}.verifiedText{color:#0f9e73;font-weight:800}.analyticsRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.analyticsItem{background:#faf9fc;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.analyticsItem b{display:block}.analyticsItem span{font-size:10px;color:var(--mut2)}
 @media(max-width:760px){
   .topin{padding:10px 12px}
   .brand{font-size:17px}
@@ -140,15 +140,20 @@ function card(app){
       <div class="websiteText"><span>Website URL</span><a href="${esc(website)}" target="_blank" rel="noopener noreferrer">${esc(website||'No website URL')}</a></div>
       ${website?`<a class="primary" href="${esc(website)}" target="_blank" rel="noopener noreferrer">Open website</a>`:''}
     </div>
+    <div class="analyticsRow"><div class="analyticsItem"><b>${Number(app.views_count||0)}</b><span>Views</span></div><div class="analyticsItem"><b>${Number(app.get_clicks_count||0)}</b><span>Get clicks</span></div><div class="analyticsItem"><b>${Number(app.rating||0).toFixed(1)}</b><span>Rating</span></div><div class="analyticsItem"><b>${Number(app.ratings_count||0)}</b><span>Ratings</span></div></div>
     <div class="sectionLabel">Screenshots (${screenshots.length}/3)</div>
     <div class="screens">${screenshotHtml}</div>
+    ${(app.reports||[]).length?`<div class="reportBox"><b>${(app.reports||[]).filter(r=>r.status==='open').length} open report(s)</b>${(app.reports||[]).map(r=>`<div class="reportItem"><b>${esc(r.reason)}</b> by @${esc(r.users?.username||'unknown')} · ${esc(r.status)}<br>${esc(r.details||'No details')}</div>`).join('')}<button class="ghost" style="margin-top:8px" onclick="resolveReports('${app.id}')">Mark open reports reviewed</button></div>`:''}
     <div class="actions">
       <button class="primary" onclick="review('${app.id}','published')">Approve</button>
       <button class="danger" onclick="review('${app.id}','rejected')">Reject</button>
       <button class="ghost" onclick="review('${app.id}','suspended')">Suspend</button>
+      <button class="ghost" onclick="setVerified('${app.id}',${!app.is_verified})">${app.is_verified?'Remove verification':'Verify app'}</button>
     </div>
   </article>`
 }
+async function setVerified(id,isVerified){try{const response=await fetch(API.admin,{method:'PATCH',headers:headers(),body:JSON.stringify({id,isVerified})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to update verification');toast(isVerified?'App verified':'Verification removed');await loadAdmin()}catch(error){toast(error.message)}}
+async function resolveReports(id){try{const response=await fetch(API.admin,{method:'PATCH',headers:headers(),body:JSON.stringify({id,reportStatus:'reviewed'})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to update reports');toast('Reports marked reviewed');await loadAdmin()}catch(error){toast(error.message)}}
 async function review(id,status){const adminNote=status==='rejected'?prompt('Reason for rejection',''):'';try{const response=await fetch(API.admin,{method:'PATCH',headers:headers(),body:JSON.stringify({id,status,adminNote,isFeatured:false})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to update app');toast('App status updated');await loadAdmin()}catch(error){toast(error.message||'Review failed')}}
 function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
 </script>

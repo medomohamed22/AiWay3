@@ -23,3 +23,11 @@
 - Submission price is currently `1 Pi` in `index.html`.
 - The backend uses `PI_SECRET_KEY`; never expose it in client code.
 - Verify your Pi app domain, wallet and production settings in the Pi Developer Portal before using Mainnet.
+
+## Engagement upgrade
+Run `sql/engagement-features.sql` after the base schema. It adds:
+- One 1–5 star rating per Pi user, with automatic average and rating count
+- Daily-deduplicated app views and Get clicks per browser
+- Developer analytics in Profile
+- User reports and admin report review
+- Admin-controlled AppHub Verified badges
