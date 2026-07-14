@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#3f1f9c">
 <title>AppHub</title>
-<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script defer src="https://sdk.minepi.com/pi-sdk.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -88,9 +88,55 @@ a.back{color:var(--pd);font-weight:700;text-decoration:none;font-size:13.5px;dis
   .websiteBar .primary{width:100%;text-align:center}
   .actions button{min-width:0}
 }
+
+/* v16 responsive, performance and loading UX */
+html{scroll-behavior:smooth;text-size-adjust:100%}
+body{min-height:100dvh;overflow-x:hidden}
+img{max-width:100%;content-visibility:auto}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid color-mix(in srgb,var(--p,#6d3fe6) 28%,transparent);outline-offset:2px}
+.app-loading-bar{position:fixed;z-index:9999;top:0;left:0;height:3px;width:100%;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,var(--p,#6d3fe6),#a887ff,transparent);background-size:220% 100%;animation:loadingSlide 1s linear infinite}
+.app-loading-bar.show{opacity:1}
+.page-loader{position:fixed;inset:0;z-index:9998;display:grid;place-items:center;background:color-mix(in srgb,var(--bg,#f5f3fb) 92%,white);transition:opacity .28s,visibility .28s}
+.page-loader.hide{opacity:0;visibility:hidden}
+.loader-card{display:grid;justify-items:center;gap:13px;padding:24px;color:var(--ink-soft,#4c4760);font-weight:700;font-size:13px}
+.loader-orbit{width:52px;height:52px;border-radius:50%;border:4px solid color-mix(in srgb,var(--p,#6d3fe6) 15%,transparent);border-top-color:var(--p,#6d3fe6);animation:spin .75s linear infinite;box-shadow:0 8px 28px -12px rgba(63,31,156,.4)}
+.is-busy{position:relative;pointer-events:none;opacity:.78}
+.is-busy::after{content:"";display:inline-block;width:14px;height:14px;margin-inline-start:8px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .65s linear infinite}
+.skeleton{position:relative;overflow:hidden;background:color-mix(in srgb,var(--line,#e9e5f4) 66%,white);border-radius:14px;min-height:84px}
+.skeleton::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:shimmer 1.25s infinite}
+.skeleton-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+@keyframes loadingSlide{to{background-position:-220% 0}}
+@media(max-width:719px){
+  .topin{padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right))}
+  .page,.wrap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .hero{border-radius:20px;padding:23px 18px}
+  .hero h1{font-size:clamp(25px,9vw,34px)}
+  .form{grid-template-columns:1fr!important}.field{grid-column:1/-1!important}
+  .previewRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .row{flex-wrap:wrap}.row>.primary,.row>.ghost,.row>.danger{min-height:46px}
+  .appRow{grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:11px}
+  .appRowLogo{width:54px;height:54px;border-radius:14px}.getBtn{padding:9px 13px;min-width:56px}
+  .analytics{grid-template-columns:repeat(2,1fr)}
+  .modalCard{width:min(100% - 16px,620px);max-height:calc(100dvh - 20px);overflow:auto;border-radius:20px}
+  .bottom{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  .navbtn{min-width:0;font-size:10px}.navbtn svg{width:21px;height:21px}
+  .skeleton-grid{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+  .brand{font-size:16px}.mark{width:29px;height:29px}.login,.account{max-width:46vw;padding:9px 11px}
+  .previewRow{gap:8px}.preview{border-radius:13px}
+  .sectionTitle{align-items:flex-start;gap:8px}.sectionTitle h2{font-size:18px}
+  .appHead{grid-template-columns:72px minmax(0,1fr)!important}.appHead>.get{grid-column:1/-1;width:100%;margin-top:2px}
+  .stats{grid-template-columns:repeat(2,1fr)!important}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.loader-orbit,.app-loading-bar,.skeleton::after,.is-busy::after{animation-duration:1.5s}}
+
 </style>
 </head>
-<body>
+<body><div class="app-loading-bar" id="appLoadingBar" aria-hidden="true"></div><div class="page-loader" id="pageLoader" role="status" aria-live="polite"><div class="loader-card"><div class="loader-orbit"></div><span>Loading AppHub…</span></div></div>
 <header class="top"><div class="topin"><div class="brand"><span class="mark">π</span>AppHub <b>Admin</b></div><button class="account" id="accountBtn" onclick="handleAccount()">Sign in with Pi</button></div></header>
 <main class="wrap">
 <a class="back" href="/">← Back to AppHub</a>
@@ -157,5 +203,28 @@ async function resolveReports(id){try{const response=await fetch(API.admin,{meth
 async function review(id,status){const adminNote=status==='rejected'?prompt('Reason for rejection',''):'';try{const response=await fetch(API.admin,{method:'PATCH',headers:headers(),body:JSON.stringify({id,status,adminNote,isFeatured:false})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to update app');toast('App status updated');await loadAdmin()}catch(error){toast(error.message||'Review failed')}}
 function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
 </script>
+
+<script>
+(function(){
+  const bar=document.getElementById('appLoadingBar');
+  const loader=document.getElementById('pageLoader');
+  let pending=0;
+  const show=()=>{pending++;bar&&bar.classList.add('show')};
+  const hide=()=>{pending=Math.max(0,pending-1);if(!pending)bar&&bar.classList.remove('show')};
+  const originalFetch=window.fetch.bind(window);
+  window.fetch=async function(){show();try{return await originalFetch(...arguments)}finally{hide()}};
+  window.addEventListener('load',()=>setTimeout(()=>loader&&loader.classList.add('hide'),120));
+  setTimeout(()=>loader&&loader.classList.add('hide'),4500);
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('button[type="submit"],button.primary,.get,.login,.account');
+    if(!btn||btn.disabled||btn.classList.contains('navbtn'))return;
+    btn.classList.add('is-busy');
+    setTimeout(()=>btn.classList.remove('is-busy'),5000);
+  });
+  document.addEventListener('load',e=>{if(e.target instanceof HTMLImageElement)e.target.classList.add('image-ready')},true);
+  document.querySelectorAll('img').forEach(img=>{if(!img.loading)img.loading='lazy';img.decoding='async'});
+})();
+</script>
+
 </body>
 </html>
