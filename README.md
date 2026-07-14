@@ -38,3 +38,9 @@ Run `sql/engagement-features.sql` after the base schema. It adds:
 - Uploaded image previews include a remove button.
 - Owners can reopen the full submission form, edit every field/image, and resubmit for review without another payment.
 - Existing Supabase projects must run `sql/optional-screenshots-email-update.sql` once.
+
+
+## v17 image optimization and rejection feedback
+- New and replacement logos/screenshots are resized and converted to WebP in the browser before upload.
+- Logos use a maximum 900px dimension at high quality; screenshots use a maximum 1800px dimension at high quality.
+- Admin rejection requires a written reason, which appears to the developer in My Apps.

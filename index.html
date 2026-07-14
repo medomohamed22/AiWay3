@@ -95,6 +95,10 @@ button{cursor:pointer}
 .preview input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
 .preview .removeImage{position:absolute;z-index:3;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:#211b2ccc;color:#fff;font-size:18px;line-height:1;display:none;place-items:center;cursor:pointer}
 .preview.has-image .removeImage{display:grid}
+.preview.is-processing::after{content:'Compressing…';position:absolute;inset:auto 7px 7px 7px;z-index:4;padding:6px 8px;border-radius:9px;background:#211b2cdd;color:#fff;font-size:9px;font-weight:800;text-align:center;animation:pulseText 1s ease-in-out infinite}
+.imageSaving{font-size:11px;color:var(--ok);margin-top:7px;font-weight:700}
+.rejectionNote{margin:10px 0 2px;padding:12px 14px;border:1px solid #ffc9d1;background:var(--bad-soft);border-radius:13px;color:#9f2437;font-size:13px;line-height:1.6}.rejectionNote b{display:block;margin-bottom:3px}
+@keyframes pulseText{50%{opacity:.65}}
 .preview.optional .previewText::after{content:' (optional)';font-weight:500;color:var(--mut2)}
 .primary,.ghost,.danger{border:0;border-radius:var(--r-md);padding:13px 16px;font-weight:750;font-size:14px;transition:.15s}
 .primary{background:linear-gradient(135deg,var(--p2),var(--pd));color:#fff;box-shadow:0 8px 18px -8px #3f1f9c66}
@@ -285,11 +289,32 @@ function details(id){openAppPage(id)}
 function closeDetails(){document.getElementById('details').classList.remove('open')}
 function showPage(name,btn){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(name+'Page').classList.add('active');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(name==='profile')loadMyApps();if(name==='add'&&!auth?.token)loginWithPi()}
 function setPreview(id,src='',existingUrl=''){const box=document.getElementById(id);if(!box)return;const img=box.querySelector('img'),text=box.querySelector('.previewText');box.dataset.existingUrl=existingUrl||'';if(src){img.src=src;img.hidden=false;text.hidden=true;box.classList.add('has-image')}else{img.src='';img.hidden=true;text.hidden=false;box.classList.remove('has-image')}}
-function previewFile(input,id){const f=input.files?.[0],box=document.getElementById(id);if(!f||!box)return;const r=new FileReader();r.onload=()=>setPreview(id,r.result,'');r.readAsDataURL(f)}
-function removeImage(event,id){event.preventDefault();event.stopPropagation();const box=document.getElementById(id),input=box?.querySelector('input[type=file]');if(input)input.value='';setPreview(id)}
+async function compressImage(file,kind='screenshot'){
+  if(!file||!file.type.startsWith('image/'))throw new Error('Choose a valid image');
+  const maxDimension=kind==='logo'?900:1800,quality=kind==='logo'?.86:.82;
+  const bitmap=await createImageBitmap(file);
+  const scale=Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+  const width=Math.max(1,Math.round(bitmap.width*scale)),height=Math.max(1,Math.round(bitmap.height*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d',{alpha:false});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(bitmap,0,0,width,height);bitmap.close?.();
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image compression failed')),'image/webp',quality));
+  return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.webp',{type:'image/webp',lastModified:Date.now()});
+}
+async function previewFile(input,id){
+  const original=input.files?.[0],box=document.getElementById(id);if(!original||!box)return;
+  box.classList.add('is-processing');input.disabled=true;
+  try{
+    const kind=id==='logoPreview'?'logo':'screenshot';
+    const compressed=await compressImage(original,kind);input._compressedFile=compressed;
+    const saved=Math.max(0,Math.round((1-compressed.size/original.size)*100));
+    setPreview(id,URL.createObjectURL(compressed),'');box.title=`Compressed: ${(compressed.size/1024).toFixed(0)} KB${saved?` · ${saved}% smaller`:''}`;
+  }catch(e){input.value='';input._compressedFile=null;setPreview(id);toast(e.message||'Unable to process image')}
+  finally{input.disabled=false;box.classList.remove('is-processing')}
+}
+function removeImage(event,id){event.preventDefault();event.stopPropagation();const box=document.getElementById(id),input=box?.querySelector('input[type=file]');if(input){input.value='';input._compressedFile=null}setPreview(id);if(box)box.title=''}
 function toDataUrl(file){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)})}
 function resetAppForm(){const form=document.getElementById('appForm');form.reset();editingAppId.value='';['logoPreview','shot1Preview','shot2Preview','shot3Preview'].forEach(id=>setPreview(id));formTitle.textContent='Add App +';formSubtitle.textContent='Your app remains pending until an admin approves it.';paymentNotice.style.display='block';submitAppBtn.textContent='Pay 1 Pi & Submit';cancelEditBtn.style.display='none'}
-async function upload(file,kind){const dataUrl=await toDataUrl(file);const r=await fetch(API.upload,{method:'POST',headers:headers(),body:JSON.stringify({dataUrl,kind})});const d=await r.json();if(!r.ok)throw Error(d.error);return d.url}
+async function upload(fileOrInput,kind){const ready=fileOrInput?._compressedFile||fileOrInput?.files?.[0]||fileOrInput;const dataUrl=await toDataUrl(ready);const r=await fetch(API.upload,{method:'POST',headers:headers(),body:JSON.stringify({dataUrl,kind})});const d=await r.json();if(!r.ok)throw Error(d.error);return d.url}
 async function createPayment(appPayload){
   await ensurePiPaymentsAuth();
   localStorage.setItem('apphub_pending_submission',JSON.stringify(appPayload));
@@ -333,9 +358,9 @@ document.getElementById('appForm').addEventListener('submit',async e=>{
     if(!logoInput.files?.[0]&&!existing[0])throw new Error('Logo is required');
     if(!shots[0]?.files?.[0]&&!existing[1])throw new Error('Screenshot 1 is required');
     btn.textContent='Uploading images...';
-    const iconUrl=logoInput.files?.[0]?await upload(logoInput.files[0],'logo'):existing[0];
+    const iconUrl=logoInput.files?.[0]?await upload(logoInput,'logo'):existing[0];
     const screenshotUrls=[];
-    for(let i=0;i<shots.length;i++){const url=shots[i].files?.[0]?await upload(shots[i].files[0],'screenshot-'+(i+1)):existing[i+1];if(url)screenshotUrls.push(url)}
+    for(let i=0;i<shots.length;i++){const url=shots[i].files?.[0]?await upload(shots[i],'screenshot-'+(i+1)):existing[i+1];if(url)screenshotUrls.push(url)}
     const payload={name:fd.get('name'),category:fd.get('category'),network:fd.get('network'),websiteUrl:fd.get('websiteUrl'),shortDescription:fd.get('shortDescription'),developerName:fd.get('developerName'),contactEmail:fd.get('contactEmail')||'',iconUrl,screenshotUrls};
     if(editId){
       btn.textContent='Saving changes...';
@@ -345,7 +370,7 @@ document.getElementById('appForm').addEventListener('submit',async e=>{
     resetAppForm();showPage('profile',document.querySelectorAll('.navbtn')[3]);await loadMyApps();
   }catch(err){console.error(err);toast(err.message||'Submission failed')}finally{btn.disabled=false;btn.textContent=editingAppId.value?'Save changes & resubmit':originalText}
 });
-async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">Sign in with Pi first.</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>Views</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>Get clicks</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>Avg rating</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>Ratings</span></div></div><div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${a.status}</span>${a.is_verified?'<span class="badge status-published">Verified</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} open reports</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">Edit & resubmit</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">Promote</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">Delete</button></div></div>`).join(''):'<div class="empty">You have not submitted any apps.</div>'}
+async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">Sign in with Pi first.</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>Views</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>Get clicks</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>Avg rating</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>Ratings</span></div></div>${a.status==='rejected'&&a.admin_note?`<div class="rejectionNote"><b>Reason for rejection</b>${esc(a.admin_note)}</div>`:''}<div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${a.status}</span>${a.is_verified?'<span class="badge status-published">Verified</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} open reports</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">Edit & resubmit</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">Promote</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">Delete</button></div></div>`).join(''):'<div class="empty">You have not submitted any apps.</div>'}
 async function deleteApp(id){if(!confirm('Delete this app?'))return;const r=await fetch(API.manage+'?id='+id,{method:'DELETE',headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);toast('Deleted');loadMyApps()}
 function editApp(id){const a=(window.myAppData||[]).find(x=>x.id===id);if(!a)return;const form=document.getElementById('appForm');editingAppId.value=a.id;form.elements.name.value=a.name||'';form.elements.category.value=a.category||'Shop';form.elements.network.value=a.network||'mainnet';form.elements.websiteUrl.value=a.website_url||'';form.elements.shortDescription.value=a.short_description||'';form.elements.developerName.value=a.developer_name||'';form.elements.contactEmail.value=a.contact_email||'';setPreview('logoPreview',a.icon_url||'',a.icon_url||'');const shots=Array.isArray(a.screenshot_urls)?a.screenshot_urls:[];['shot1Preview','shot2Preview','shot3Preview'].forEach((pid,i)=>setPreview(pid,shots[i]||'',shots[i]||''));formTitle.textContent='Edit App';formSubtitle.textContent='Change any data and resubmit it for admin review without another fee.';paymentNotice.style.display='none';submitAppBtn.textContent='Save changes & resubmit';cancelEditBtn.style.display='inline-block';showPage('add',document.querySelectorAll('.navbtn')[2]);window.scrollTo({top:0,behavior:'smooth'})}
 
