@@ -28,10 +28,10 @@ function validateAppPayload(body) {
     !short_description ||
     short_description.length < 10 ||
     !developer_name ||
-    !contact_email ||
     !categories.has(category) ||
     !['mainnet', 'testnet'].includes(network) ||
-    screenshot_urls.length !== 3
+    screenshot_urls.length < 1 ||
+    screenshot_urls.length > 3
   ) {
     const error = new Error('INVALID_APP_DATA');
     throw error;
@@ -150,7 +150,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     if (error.message === 'INVALID_APP_DATA') {
-      return json(res, 400, { error: 'Complete all fields and upload exactly 3 screenshots' });
+      return json(res, 400, { error: 'Complete required fields, logo, and upload between 1 and 3 screenshots' });
     }
     return handleError(error, res, 'Unable to complete payment and submit app');
   }
