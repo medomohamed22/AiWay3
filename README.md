@@ -118,3 +118,12 @@ Confirm that:
 - Security and validation updates in `api/`
 - Updated `vercel.json`
 - Updated header branding in `index.html` and `admin.html`
+
+## v22 login and logo fix
+
+- Pi sign-in now requests only the `username` permission. The `payments` permission is requested later, only when a payment is needed.
+- Server identity verification uses Pi's documented `/me` endpoint and falls back to `/v2/me` for compatibility.
+- Pi Browser embedding is allowed through CSP without allowing arbitrary websites.
+- The AppHub wordmark was tightly cropped and resized so it is fully visible in the header.
+
+After uploading this version, redeploy Production in Vercel. Keep `PI_API_BASE_URL=https://api.minepi.com`. The app configured in Pi Developer Portal must use the exact deployed domain.

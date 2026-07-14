@@ -22,7 +22,7 @@ button{cursor:pointer}
 .top{position:sticky;top:0;z-index:30;background:#fffffff2;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .topin{max-width:1080px;margin:auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-d);font-weight:800;font-size:19px;letter-spacing:-.02em}
-.brandLogo{width:118px;height:34px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}
+.brandLogo{width:148px;height:32px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}
 .login{border:0;border-radius:var(--r-pill);background:var(--pd);background:linear-gradient(135deg,var(--p2),var(--pd));color:#fff;padding:10px 16px;font-weight:700;font-size:13.5px;max-width:52vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 6px 16px -6px #3f1f9c66}
 
 /* layout */
@@ -218,7 +218,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .skeleton-grid{grid-template-columns:1fr}
 }
 @media(max-width:420px){
-  .brand{font-size:16px}.brandLogo{width:104px;height:30px}.login,.account{max-width:46vw;padding:9px 11px}
+  .brand{font-size:16px}.brandLogo{width:132px;height:28px}.login,.account{max-width:48vw;padding:9px 11px}
   .previewRow{gap:8px}.preview{border-radius:13px}
   .sectionTitle{align-items:flex-start;gap:8px}.sectionTitle h2{font-size:18px}
   .appHead{grid-template-columns:72px minmax(0,1fr)!important}.appHead>.get{grid-column:1/-1;width:100%;margin-top:2px}
@@ -261,45 +261,51 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script>
 const API={interactions:'/api/app-interactions',promote:'/api/promotion-complete',apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
 const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(sessionStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='mainnet';
-addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();renderFilters();await loadApps()});
+addEventListener('DOMContentLoaded',async()=>{try{if(window.Pi)Pi.init({version:'2.0',sandbox:false})}catch(e){console.error('Pi SDK init failed',e)}restoreAuth();renderFilters();await loadApps()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function appConfirm({title='Are you sure?',message='This action cannot be undone.',confirmText='Confirm',icon='!' }={}){return new Promise(resolve=>{const modal=document.getElementById('confirmModal'),accept=document.getElementById('confirmAccept'),cancel=document.getElementById('confirmCancel');document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMessage').textContent=message;document.getElementById('confirmIcon').textContent=icon;accept.textContent=confirmText;modal.classList.add('open');document.body.style.overflow='hidden';const finish=value=>{modal.classList.remove('open');document.body.style.overflow='';accept.onclick=null;cancel.onclick=null;modal.onclick=null;document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};accept.onclick=()=>finish(true);cancel.onclick=()=>finish(false);modal.onclick=e=>{if(e.target===modal)finish(false)};document.addEventListener('keydown',onKey);setTimeout(()=>cancel.focus(),0)})}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;loginBtn.title='Tap to sign out';profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}else{loginBtn.textContent='Sign in with Pi';loginBtn.title='';profileName.textContent='Sign in to manage your apps.';adminArea.style.display='none'}}
 function handleAccountButton(){if(auth?.token)return logout();return loginWithPi()}
 function logout(){auth=null;sessionStorage.removeItem('apphub_auth');sessionStorage.removeItem('apphub_pending_submission');restoreAuth();myApps.innerHTML='';toast('Signed out successfully');showPage('home',document.querySelectorAll('.navbtn')[0])}
 function onIncompletePaymentFound(payment){console.warn('Incomplete Pi payment found:',payment)}
-async function authenticatePi(){
-  if(!window.Pi)throw Error('Open inside Pi Browser');
-  piAuth=await Pi.authenticate(['username','payments'],onIncompletePaymentFound);
-  if(!piAuth?.accessToken)throw Error('Pi authentication did not return an access token');
-  return piAuth;
+async function authenticatePi(scopes=['username']){
+  if(!window.Pi)throw Error('Open AppHub inside Pi Browser');
+  const result=await Pi.authenticate(scopes,onIncompletePaymentFound);
+  if(!result?.accessToken)throw Error('Pi did not return an access token');
+  piAuth=result;
+  return result;
+}
+async function savePiSession(a){
+  const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:a.accessToken})});
+  const text=await r.text();
+  let d={};try{d=text?JSON.parse(text):{}}catch{throw Error('The sign-in server returned an invalid response')}
+  if(!r.ok)throw Error(d.error||'Pi sign-in failed');
+  auth=d;sessionStorage.setItem('apphub_auth',JSON.stringify(auth));restoreAuth();return auth;
 }
 async function ensurePiPaymentsAuth(){
-  const a=await authenticatePi();
-  const r=await fetch(API.login,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({accessToken:a.accessToken})
-  });
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw Error(d.error||'Unable to refresh Pi sign-in');
-  auth=d;
-  sessionStorage.setItem('apphub_auth',JSON.stringify(auth));
-  restoreAuth();
+  const a=await authenticatePi(['username','payments']);
+  await savePiSession(a);
   return a;
 }
 async function loginWithPi(){
+  const button=document.getElementById('loginBtn');
+  if(button.disabled)return null;
+  const oldText=button.textContent;
   try{
-    const a=await authenticatePi();
-    const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:a.accessToken})});
-    const d=await r.json();
-    if(!r.ok)throw Error(d.error||'Pi sign-in failed');
-    auth=d;
-    sessionStorage.setItem('apphub_auth',JSON.stringify(auth));
-    restoreAuth();
-    toast('Signed in with payment permission');
+    button.disabled=true;button.classList.add('is-busy');button.textContent='Signing in';
+    const a=await authenticatePi(['username']);
+    await savePiSession(a);
+    toast('Signed in successfully');
     return auth;
-  }catch(e){toast(e.message||'Sign-in failed');throw e}
+  }catch(e){
+    console.error('Pi login failed',e);
+    const message=e?.message||'Sign-in failed';
+    toast(message.includes('cancel')?'Sign-in was cancelled':message);
+    return null;
+  }finally{
+    button.disabled=false;button.classList.remove('is-busy');
+    if(!auth?.user)button.textContent=oldText;
+  }
 }
 function renderFilters(){networkChips.innerHTML=['mainnet','testnet'].map(n=>`<button class="chip ${n===network?'active':''}" onclick="network='${n}';renderFilters();renderPublic()">${n==='mainnet'?'Mainnet':'Testnet'}</button>`).join('');categoryChips.innerHTML=cats.map(c=>`<button class="chip ${c===category?'active':''}" onclick="category='${c}';renderFilters();renderPublic()">${c}</button>`).join('')}
 async function loadApps(){homeGrid.innerHTML='<div class="skeleton-grid">'+Array(4).fill('<div class="skeleton"></div>').join('')+'</div>';try{const r=await fetch(API.apps),d=await r.json();if(!r.ok)throw Error(d.error);apps=d.apps||[];renderPublic()}catch(e){homeGrid.innerHTML='<div class="empty">Unable to load apps.</div>';toast(e.message)}}
