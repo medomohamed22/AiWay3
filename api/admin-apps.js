@@ -28,7 +28,7 @@ export default async function handler(req,res){
    if(error)throw error;return json(res,200,{updated:true});
   }
   const patch={};
-  if(status!=null){if(!['pending','published','rejected','suspended'].includes(status))return json(res,400,{error:'Invalid review action'});Object.assign(patch,{status,admin_note:cleanText(adminNote,500),published_at:status==='published'?new Date().toISOString():null});}
+  if(status!=null){if(!['pending','published','rejected','suspended'].includes(status))return json(res,400,{error:'Invalid review action'});const note=cleanText(adminNote,500);if(status==='rejected'&&note.length<8)return json(res,400,{error:'Write a clear rejection reason'});Object.assign(patch,{status,admin_note:status==='rejected'?note:'',published_at:status==='published'?new Date().toISOString():null});}
   if(isFeatured!=null)patch.is_featured=Boolean(isFeatured);
   if(isVerified!=null)Object.assign(patch,{is_verified:Boolean(isVerified),verified_at:isVerified?new Date().toISOString():null,verified_by:isVerified?user.id:null});
   if(!Object.keys(patch).length)return json(res,400,{error:'No changes supplied'});
