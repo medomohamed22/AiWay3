@@ -297,7 +297,24 @@ html[dir="rtl"] .search input{padding-right:15px!important;padding-left:46px!imp
 <script>
 const API={interactions:'/api/app-interactions',promote:'/api/promotion-complete',apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
 const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='all',visibleCount=12,sortMode='newest',favoritesOnly=false;const PAGE_SIZE=12;let renderTimer=null;const favorites=new Set(JSON.parse(localStorage.getItem('apphub_favorites')||'[]'));
-addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();restoreBrowseState();applyTranslations();bindDiscoveryControls();renderFilters();await loadApps();setupRevealObserver()});
+addEventListener('DOMContentLoaded',async()=>{
+  try{
+    if(window.Pi)Pi.init({version:'2.0',sandbox:false});
+    restoreAuth();restoreBrowseState();applyTranslations();bindDiscoveryControls();renderFilters();
+    await loadApps();
+    setupRevealObserver();
+  }catch(e){
+    console.error('AppHub startup error:',e);
+    const grid=document.getElementById('homeGrid');
+    if(grid&&!grid.children.length)grid.innerHTML='<div class="empty">Unable to start AppHub. Please refresh.</div>';
+  }finally{
+    hidePageLoader();
+  }
+});
+function hidePageLoader(){
+  const loader=document.getElementById('pageLoader');
+  if(loader)loader.classList.add('hide');
+}
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function appConfirm({title='Are you sure?',message='This action cannot be undone.',confirmText='Confirm',icon='!' }={}){return new Promise(resolve=>{const modal=document.getElementById('confirmModal'),accept=document.getElementById('confirmAccept'),cancel=document.getElementById('confirmCancel');document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMessage').textContent=message;document.getElementById('confirmIcon').textContent=icon;accept.textContent=confirmText;modal.classList.add('open');document.body.style.overflow='hidden';const finish=value=>{modal.classList.remove('open');document.body.style.overflow='';accept.onclick=null;cancel.onclick=null;modal.onclick=null;document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};accept.onclick=()=>finish(true);cancel.onclick=()=>finish(false);modal.onclick=e=>{if(e.target===modal)finish(false)};document.addEventListener('keydown',onKey);setTimeout(()=>cancel.focus(),0)})}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;loginBtn.title='Tap to sign out';profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}else{loginBtn.textContent='Sign in with Pi';loginBtn.title='';profileName.textContent='Sign in to manage your apps.';adminArea.style.display='none'}}
@@ -445,6 +462,27 @@ document.getElementById('appForm').addEventListener('submit',async e=>{
   }catch(err){console.error(err);toast(err.message||'Submission failed')}finally{btn.disabled=false;btn.textContent=editingAppId.value?'Save changes & resubmit':originalText}
 });
 async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">'+tr('Sign in with Pi first.')+'</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>${tr('Views')}</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>${tr('Get clicks')}</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>${tr('Avg rating')}</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>${tr('Ratings')}</span></div></div>${a.status==='rejected'&&a.admin_note?`<div class="rejectionNote"><b>${tr('Reason for rejection')}</b>${esc(a.admin_note)}</div>`:''}<div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${tr(a.status)}</span>${a.is_verified?'<span class="badge status-published">'+tr('Verified')+'</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} ${tr('open reports')}</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">${tr('Edit & resubmit')}</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">${tr('Promote')}</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">${tr('Delete')}</button></div></div>`).join(''):'<div class="empty">'+tr('You have not submitted any apps.')+'</div>'}
+</script>
+
+<script>
+(function(){
+  const bar=document.getElementById('appLoadingBar');
+  const loader=document.getElementById('pageLoader');
+  let pending=0;
+  const show=()=>{pending++;if(bar)bar.classList.add('show')};
+  const hide=()=>{pending=Math.max(0,pending-1);if(!pending&&bar)bar.classList.remove('show')};
+  if(typeof window.fetch==='function'){
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async function(){show();try{return await originalFetch(...arguments)}finally{hide()}};
+  }
+  const dismiss=()=>loader&&loader.classList.add('hide');
+  if(document.readyState==='complete')setTimeout(dismiss,100);
+  else window.addEventListener('load',()=>setTimeout(dismiss,100),{once:true});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(dismiss,2500),{once:true});
+  setTimeout(dismiss,5000);
+  window.addEventListener('error',dismiss);
+  window.addEventListener('unhandledrejection',dismiss);
+})();
 </script>
 
 </body></html>
