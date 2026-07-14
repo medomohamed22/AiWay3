@@ -1,191 +1,90 @@
-import { SignJWT } from "jose";
-import { createClient } from "@supabase/supabase-js";
+import { allowMethods, db, handleError, json, rateLimit, signAppToken } from './_lib.js';
 
-const PI_API_BASE_URL =
-  process.env.PI_API_BASE_URL || "https://api.minepi.com";
+const PI_BASE = (process.env.PI_API_BASE_URL || 'https://api.minepi.com').replace(/\/$/, '');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
+async function readPiUser(accessToken) {
+  // Pi's documented identity endpoint is /me. The /v2/me fallback keeps
+  // compatibility with deployments that previously used that route.
+  const paths = ['/me', '/v2/me'];
+  let lastStatus = 0;
+
+  for (const path of paths) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(`${PI_BASE}${path}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json'
+        },
+        signal: controller.signal
+      });
+      lastStatus = response.status;
+      const body = await response.json().catch(() => null);
+
+      if (response.ok && body?.uid && body?.username) return body;
+      if (response.status !== 404) break;
+    } finally {
+      clearTimeout(timeout);
     }
   }
-);
 
-function sendJson(res, status, body) {
-  res.status(status).json(body);
+  const error = new Error('INVALID_PI_TOKEN');
+  error.status = lastStatus;
+  throw error;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return sendJson(res, 405, {
-      error: "Method not allowed"
-    });
-  }
+  if (!allowMethods(req, res, ['POST'])) return;
 
   try {
-    const accessToken = req.body?.accessToken;
+    await rateLimit(req, { key: 'pi-login', limit: 20, windowSeconds: 600 });
 
-    if (
-      typeof accessToken !== "string" ||
-      accessToken.length < 20 ||
-      accessToken.length > 4096
-    ) {
-      return sendJson(res, 400, {
-        error: "Missing or invalid Pi access token"
-      });
+    const accessToken = String(req.body?.accessToken || '').trim();
+    if (accessToken.length < 20 || accessToken.length > 4096) {
+      return json(res, 400, { error: 'Pi access token is missing or invalid' });
     }
 
-    if (
-      !process.env.SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      !process.env.APP_JWT_SECRET
-    ) {
-      console.error("Missing required environment variables");
+    const piUser = await readPiUser(accessToken);
+    const piUid = String(piUser.uid).trim();
+    const username = String(piUser.username).trim().slice(0, 80);
 
-      return sendJson(res, 500, {
-        error: "Server configuration is incomplete"
-      });
-    }
-
-    const piResponse = await fetch(`${PI_API_BASE_URL}/v2/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json"
-      },
-      signal: AbortSignal.timeout(10000)
-    });
-
-    const piRaw = await piResponse.text();
-
-    let piUser = null;
-
-    try {
-      piUser = piRaw ? JSON.parse(piRaw) : null;
-    } catch {
-      console.error("Pi API returned non-JSON:", piRaw);
-
-      return sendJson(res, 502, {
-        error: "Invalid response from Pi authentication server"
-      });
-    }
-
-    if (!piResponse.ok) {
-      console.error("Pi /me failed:", {
-        status: piResponse.status,
-        body: piUser
-      });
-
-      return sendJson(res, 401, {
-        error: "Pi authentication token was rejected"
-      });
-    }
-
-    const piUid = piUser?.uid;
-    const username = piUser?.username;
-
-    if (!piUid || !username) {
-      console.error("Pi user response missing fields:", piUser);
-
-      return sendJson(res, 401, {
-        error: "Pi account information is incomplete"
-      });
-    }
-
-    const { data: existingUser, error: readError } = await supabase
-      .from("users")
-      .select("id, pi_uid, username, role")
-      .eq("pi_uid", piUid)
+    const supabase = db();
+    const { data: existing, error: readError } = await supabase
+      .from('users')
+      .select('id, pi_uid, username, role, created_at')
+      .eq('pi_uid', piUid)
       .maybeSingle();
+    if (readError) throw readError;
 
-    if (readError) {
-      console.error("Supabase user read failed:", readError);
-
-      return sendJson(res, 500, {
-        error: "Unable to read user account"
-      });
-    }
-
-    let user = existingUser;
-
-    if (!user) {
-      const { data: newUser, error: insertError } = await supabase
-        .from("users")
-        .insert({
-          pi_uid: piUid,
-          username,
-          role: "user",
-          last_login_at: new Date().toISOString()
-        })
-        .select("id, pi_uid, username, role")
+    let user = existing;
+    if (existing) {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ username, last_login_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .select('id, pi_uid, username, role, created_at')
         .single();
-
-      if (insertError) {
-        console.error("Supabase user insert failed:", insertError);
-
-        return sendJson(res, 500, {
-          error: "Unable to create user account"
-        });
-      }
-
-      user = newUser;
+      if (error) throw error;
+      user = data;
     } else {
-      const { data: updatedUser, error: updateError } = await supabase
-        .from("users")
-        .update({
-          username,
-          last_login_at: new Date().toISOString()
-        })
-        .eq("id", user.id)
-        .select("id, pi_uid, username, role")
+      const { data, error } = await supabase
+        .from('users')
+        .insert({ pi_uid: piUid, username, role: 'user', last_login_at: new Date().toISOString() })
+        .select('id, pi_uid, username, role, created_at')
         .single();
-
-      if (updateError) {
-        console.error("Supabase user update failed:", updateError);
-
-        return sendJson(res, 500, {
-          error: "Unable to update user account"
-        });
-      }
-
-      user = updatedUser;
+      if (error) throw error;
+      user = data;
     }
 
-    const jwtSecret = new TextEncoder().encode(
-      process.env.APP_JWT_SECRET
-    );
-
-    const token = await new SignJWT({
-      userId: user.id,
-      piUid: user.pi_uid,
-      username: user.username,
-      role: user.role
-    })
-      .setProtectedHeader({
-        alg: "HS256",
-        typ: "JWT"
-      })
-      .setIssuedAt()
-      .setExpirationTime("24h")
-      .sign(jwtSecret);
-
-    return sendJson(res, 200, {
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role
-      }
-    });
+    const token = await signAppToken(user);
+    return json(res, 200, { token, user });
   } catch (error) {
-    console.error("Unexpected Pi login error:", error);
-
-    return sendJson(res, 500, {
-      error: "Authentication failed"
-    });
+    if (error?.message === 'INVALID_PI_TOKEN') {
+      console.error('Pi identity verification failed', { status: error.status });
+      return json(res, 401, { error: 'Pi authentication failed. Please reopen the app in Pi Browser and try again.' });
+    }
+    return handleError(error, res, 'Unable to complete Pi sign-in');
   }
 }
