@@ -1,2 +1,0 @@
-import { allowMethods, db, handleError, json, requireUser } from './_lib.js';
-export default async function handler(req,res){if(!allowMethods(req,res,['GET']))return;try{const user=await requireUser(req);const appId=String(req.query?.appId||'');if(!appId)return json(res,400,{error:'Missing app id'});const {data,error}=await db().from('app_ratings').select('stars').eq('app_id',appId).eq('user_id',user.id).maybeSingle();if(error)throw error;return json(res,200,{stars:data?.stars||0})}catch(e){return handleError(e,res,'Unable to load rating')}}
