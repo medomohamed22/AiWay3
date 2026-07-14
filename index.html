@@ -244,10 +244,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 html[dir="rtl"] body{direction:rtl}
 html[dir="rtl"] .siteBrandLogo{object-position:right center}
 html[dir="rtl"] .topin,html[dir="rtl"] .sectionTitle,html[dir="rtl"] .appRowTitleLine{direction:rtl}
-html[dir="rtl"] .appRow{grid-template-columns:60px minmax(0,1fr) auto}
-html[dir="rtl"] .appRowLogo{order:3}
-html[dir="rtl"] .appRowInfo{order:2;text-align:right}
-html[dir="rtl"] .cardActions{order:1}
+html[dir="rtl"] .appRow{grid-template-columns:auto minmax(0,1fr) 60px}
 html[dir="rtl"] .appRowLogo{grid-column:3}.appRowInfo{grid-column:auto}
 html[dir="rtl"] .cardActions{grid-column:1;grid-row:1}
 html[dir="rtl"] .toolbar select{padding:10px 13px 10px 34px}
@@ -297,24 +294,7 @@ html[dir="rtl"] .search input{padding-right:15px!important;padding-left:46px!imp
 <script>
 const API={interactions:'/api/app-interactions',promote:'/api/promotion-complete',apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
 const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='all',visibleCount=12,sortMode='newest',favoritesOnly=false;const PAGE_SIZE=12;let renderTimer=null;const favorites=new Set(JSON.parse(localStorage.getItem('apphub_favorites')||'[]'));
-addEventListener('DOMContentLoaded',async()=>{
-  try{
-    if(window.Pi)Pi.init({version:'2.0',sandbox:false});
-    restoreAuth();restoreBrowseState();applyTranslations();bindDiscoveryControls();renderFilters();
-    await loadApps();
-    setupRevealObserver();
-  }catch(e){
-    console.error('AppHub startup error:',e);
-    const grid=document.getElementById('homeGrid');
-    if(grid&&!grid.children.length)grid.innerHTML='<div class="empty">Unable to start AppHub. Please refresh.</div>';
-  }finally{
-    hidePageLoader();
-  }
-});
-function hidePageLoader(){
-  const loader=document.getElementById('pageLoader');
-  if(loader)loader.classList.add('hide');
-}
+addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();restoreBrowseState();applyTranslations();bindDiscoveryControls();renderFilters();await loadApps();setupRevealObserver()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function appConfirm({title='Are you sure?',message='This action cannot be undone.',confirmText='Confirm',icon='!' }={}){return new Promise(resolve=>{const modal=document.getElementById('confirmModal'),accept=document.getElementById('confirmAccept'),cancel=document.getElementById('confirmCancel');document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMessage').textContent=message;document.getElementById('confirmIcon').textContent=icon;accept.textContent=confirmText;modal.classList.add('open');document.body.style.overflow='hidden';const finish=value=>{modal.classList.remove('open');document.body.style.overflow='';accept.onclick=null;cancel.onclick=null;modal.onclick=null;document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};accept.onclick=()=>finish(true);cancel.onclick=()=>finish(false);modal.onclick=e=>{if(e.target===modal)finish(false)};document.addEventListener('keydown',onKey);setTimeout(()=>cancel.focus(),0)})}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;loginBtn.title='Tap to sign out';profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}else{loginBtn.textContent='Sign in with Pi';loginBtn.title='';profileName.textContent='Sign in to manage your apps.';adminArea.style.display='none'}}
@@ -461,27 +441,42 @@ document.getElementById('appForm').addEventListener('submit',async e=>{
     resetAppForm();showPage('profile',document.querySelectorAll('.navbtn')[3]);await loadMyApps();
   }catch(err){console.error(err);toast(err.message||'Submission failed')}finally{btn.disabled=false;btn.textContent=editingAppId.value?'Save changes & resubmit':originalText}
 });
-async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">'+tr('Sign in with Pi first.')+'</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>${tr('Views')}</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>${tr('Get clicks')}</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>${tr('Avg rating')}</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>${tr('Ratings')}</span></div></div>${a.status==='rejected'&&a.admin_note?`<div class="rejectionNote"><b>${tr('Reason for rejection')}</b>${esc(a.admin_note)}</div>`:''}<div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${tr(a.status)}</span>${a.is_verified?'<span class="badge status-published">'+tr('Verified')+'</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} ${tr('open reports')}</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">${tr('Edit & resubmit')}</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">${tr('Promote')}</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">${tr('Delete')}</button></div></div>`).join(''):'<div class="empty">'+tr('You have not submitted any apps.')+'</div>'}
-</script>
+async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">Sign in with Pi first.</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>Views</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>Get clicks</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>Avg rating</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>Ratings</span></div></div>${a.status==='rejected'&&a.admin_note?`<div class="rejectionNote"><b>Reason for rejection</b>${esc(a.admin_note)}</div>`:''}<div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${a.status}</span>${a.is_verified?'<span class="badge status-published">Verified</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} open reports</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">Edit & resubmit</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">Promote</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">Delete</button></div></div>`).join(''):'<div class="empty">You have not submitted any apps.</div>'}
+async function deleteApp(id){const ok=await appConfirm({title:'Delete this app?',message:'The app, logo, and screenshots will be permanently removed. This action cannot be undone.',confirmText:'Yes, delete everything',icon:'×'});if(!ok)return;const r=await fetch(API.manage+'?id='+id,{method:'DELETE',headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);toast(`App deleted with ${Number(d.deletedMedia||0)} stored image${Number(d.deletedMedia||0)===1?'':'s'}`);loadMyApps()}
+function editApp(id){const a=(window.myAppData||[]).find(x=>x.id===id);if(!a)return;const form=document.getElementById('appForm');editingAppId.value=a.id;form.elements.name.value=a.name||'';form.elements.category.value=a.category||'Shop';form.elements.network.value=a.network||'mainnet';form.elements.websiteUrl.value=a.website_url||'';form.elements.shortDescription.value=a.short_description||'';form.elements.developerName.value=a.developer_name||'';form.elements.contactEmail.value=a.contact_email||'';setPreview('logoPreview',a.icon_url||'',a.icon_url||'');const shots=Array.isArray(a.screenshot_urls)?a.screenshot_urls:[];['shot1Preview','shot2Preview','shot3Preview'].forEach((pid,i)=>setPreview(pid,shots[i]||'',shots[i]||''));formTitle.textContent='Edit App';formSubtitle.textContent='Change any data and resubmit it for admin review without another fee.';paymentNotice.style.display='none';submitAppBtn.textContent='Save changes & resubmit';cancelEditBtn.style.display='inline-block';showPage('add',document.querySelectorAll('.navbtn')[2]);window.scrollTo({top:0,behavior:'smooth'})}
 
+let promotionAppId=null;
+function openPromote(id){promotionAppId=id;document.getElementById('promoteModal').classList.add('open')}
+function closePromote(){promotionAppId=null;document.getElementById('promoteModal').classList.remove('open')}
+async function buyPromotion(days,amount){if(!promotionAppId)return;try{await ensurePiPaymentsAuth();const purpose=`feature_${days}_days`;await new Promise((resolve,reject)=>{Pi.createPayment({amount,memo:`AppHub promotion for ${days} days`,metadata:{purpose,appId:promotionAppId,days}},{onReadyForServerApproval:async paymentId=>{const r=await fetch(API.approve,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,purpose,amountPi:amount,appId:promotionAppId})});const d=await r.json().catch(()=>({}));if(!r.ok)reject(Error(d.error||'Approval failed'))},onReadyForServerCompletion:async(paymentId,txid)=>{const r=await fetch(API.promote,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,txid,appId:promotionAppId,days,amountPi:amount})});const d=await r.json().catch(()=>({}));if(!r.ok)return reject(Error(d.error||'Promotion failed'));resolve(d)},onCancel:()=>reject(Error('Payment cancelled')),onError:reject})});closePromote();toast('Promotion activated');await loadMyApps();await loadApps()}catch(e){toast(e.message||'Promotion failed')}}
+
+const I18N={
+'Curated Pi ecosystem':'منظومة Pi مختارة بعناية','Discover the best Pi apps.':'اكتشف أفضل تطبيقات Pi.','Browse reviewed Mainnet and Testnet apps, shops, AI tools and services from the Pi ecosystem.':'تصفح تطبيقات وشركات وأدوات ذكاء اصطناعي وخدمات موثوقة من منظومة Pi على الشبكتين الرئيسية والتجريبية.','Search Shop, AI, Games...':'ابحث في المتاجر والذكاء الاصطناعي والألعاب...','Newest':'الأحدث','Top rated':'الأعلى تقييماً','Most viewed':'الأكثر مشاهدة','Most opened':'الأكثر فتحاً','All programs':'كل التطبيقات','Load more':'عرض المزيد','Recently viewed':'شوهدت مؤخراً','Clear':'مسح','Apps':'التطبيقات','Browse approved apps by Mainnet or Testnet.':'تصفح التطبيقات المعتمدة حسب الشبكة الرئيسية أو التجريبية.','Add App +':'إضافة تطبيق +','Your app remains pending until an admin approves it.':'يظل تطبيقك قيد المراجعة حتى موافقة المشرف.','App name':'اسم التطبيق','Category':'الفئة','Network':'الشبكة','Website URL':'رابط الموقع','Description':'الوصف','Developer name':'اسم المطور','Developer email (optional)':'بريد المطور (اختياري)','Logo + screenshots (logo and screenshot 1 required)':'الشعار ولقطات الشاشة (الشعار واللقطة الأولى مطلوبان)','Logo':'الشعار','Screenshot 1':'لقطة الشاشة 1','Screenshot 2':'لقطة الشاشة 2','Screenshot 3':'لقطة الشاشة 3','Submission fee:':'رسوم الإرسال:','The payment is approved and completed server-side before the app is stored for review.':'تتم الموافقة على الدفع وإكماله من الخادم قبل حفظ التطبيق للمراجعة.','Pay 1 Pi & Submit':'ادفع 1 Pi وأرسل','Cancel edit':'إلغاء التعديل','Profile':'الملف الشخصي','Sign in to manage your apps.':'سجّل الدخول لإدارة تطبيقاتك.','Refresh':'تحديث','Home':'الرئيسية','Add App':'إضافة تطبيق','Sign in with Pi':'تسجيل الدخول عبر Pi','Mainnet':'الشبكة الرئيسية','Testnet':'الشبكة التجريبية','All':'الكل','Shop':'متجر','AI':'ذكاء اصطناعي','Games':'ألعاب','Business':'أعمال','Tools':'أدوات','Finance':'تمويل','Social':'اجتماعي','Open':'فتح','Promoted app':'تطبيق مروّج','Verified by AppHub':'موثق من AppHub','Pi application':'تطبيق Pi','No approved apps yet.':'لا توجد تطبيقات معتمدة بعد.','No apps found.':'لم يتم العثور على تطبيقات.','Loading AppHub…':'جارٍ تحميل AppHub…'};
+let currentLang=localStorage.getItem('apphub_lang')||'en';
+function tr(v){return currentLang==='ar'?(I18N[v]||v):v}
+function toggleLanguage(){currentLang=currentLang==='en'?'ar':'en';localStorage.setItem('apphub_lang',currentLang);applyTranslations();renderFilters();renderPublic();renderRecent()}
+function applyTranslations(){document.documentElement.lang=currentLang;document.documentElement.dir=currentLang==='ar'?'rtl':'ltr';const b=document.getElementById('langToggle');if(b)b.textContent=currentLang==='ar'?'EN':'AR';const map=[['.hero .eyebrow','Curated Pi ecosystem'],['.hero h1','Discover the best Pi apps.'],['.hero p','Browse reviewed Mainnet and Testnet apps, shops, AI tools and services from the Pi ecosystem.'],['#homePage .sectionTitle h2','All programs'],['#loadMoreBtn','Load more'],['#recentSection .sectionTitle h2','Recently viewed'],['#clearRecent','Clear'],['#appsPage h2','Apps'],['#appsPage .meta','Browse approved apps by Mainnet or Testnet.'],['#formTitle','Add App +'],['#formSubtitle','Your app remains pending until an admin approves it.'],['#profilePage h2','Profile'],['#profileName','Sign in to manage your apps.']];map.forEach(([q,k])=>{const e=document.querySelector(q);if(e)e.textContent=tr(k)});const si=document.getElementById('search');if(si)si.placeholder=tr('Search Shop, AI, Games...');document.querySelectorAll('#sortSelect option').forEach(o=>o.textContent=tr({newest:'Newest',rating:'Top rated',views:'Most viewed',clicks:'Most opened'}[o.value]));document.querySelectorAll('.navbtn').forEach((e,i)=>{const svg=e.querySelector('svg')?.outerHTML||'';e.innerHTML=svg+tr(['Home','Apps','Add App','Profile'][i])});const login=document.getElementById('loginBtn');if(login&&!auth?.user?.username)login.textContent=tr('Sign in with Pi');document.querySelectorAll('.field label').forEach(l=>{const text=l.childNodes[0]?.textContent?.trim();if(text&&I18N[text])l.childNodes[0].textContent=tr(text)});document.querySelectorAll('.previewText').forEach(e=>e.textContent=tr(e.textContent));}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+</script>
 <script>
 (function(){
   const bar=document.getElementById('appLoadingBar');
   const loader=document.getElementById('pageLoader');
   let pending=0;
-  const show=()=>{pending++;if(bar)bar.classList.add('show')};
-  const hide=()=>{pending=Math.max(0,pending-1);if(!pending&&bar)bar.classList.remove('show')};
-  if(typeof window.fetch==='function'){
-    const originalFetch=window.fetch.bind(window);
-    window.fetch=async function(){show();try{return await originalFetch(...arguments)}finally{hide()}};
-  }
-  const dismiss=()=>loader&&loader.classList.add('hide');
-  if(document.readyState==='complete')setTimeout(dismiss,100);
-  else window.addEventListener('load',()=>setTimeout(dismiss,100),{once:true});
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(dismiss,2500),{once:true});
-  setTimeout(dismiss,5000);
-  window.addEventListener('error',dismiss);
-  window.addEventListener('unhandledrejection',dismiss);
+  const show=()=>{pending++;bar&&bar.classList.add('show')};
+  const hide=()=>{pending=Math.max(0,pending-1);if(!pending)bar&&bar.classList.remove('show')};
+  const originalFetch=window.fetch.bind(window);
+  window.fetch=async function(){show();try{return await originalFetch(...arguments)}finally{hide()}};
+  window.addEventListener('load',()=>setTimeout(()=>loader&&loader.classList.add('hide'),120));
+  setTimeout(()=>loader&&loader.classList.add('hide'),4500);
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('button[type="submit"],button.primary,.get,.login,.account');
+    if(!btn||btn.disabled||btn.classList.contains('navbtn'))return;
+    btn.classList.add('is-busy');
+    setTimeout(()=>btn.classList.remove('is-busy'),5000);
+  });
+  document.addEventListener('load',e=>{if(e.target instanceof HTMLImageElement)e.target.classList.add('image-ready')},true);
+  document.querySelectorAll('img').forEach(img=>{if(!img.loading)img.loading='lazy';img.decoding='async'});
 })();
 </script>
 
