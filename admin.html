@@ -58,8 +58,11 @@ a.back{color:var(--pd);font-weight:700;text-decoration:none;font-size:13.5px;dis
 .info a{color:var(--p)}
 .sectionLabel{font-size:13px;font-weight:800;margin:18px 0 9px;color:var(--ink-soft,#4c4760);font-family:var(--font-m);text-transform:uppercase;letter-spacing:.03em}
 .screens{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px}
-.screen{flex:0 0 min(80vw,340px);scroll-snap-align:start;border:1px solid var(--line);border-radius:17px;overflow:hidden;background:#f3f1f7}
-.screen img{display:block;width:100%;height:auto;object-fit:contain}
+.screen{position:relative;flex:0 0 min(80vw,340px);scroll-snap-align:start;border:1px solid var(--line);border-radius:17px;overflow:hidden;background:#f3f1f7;box-shadow:var(--shadow-sm)}
+.screen button{display:block;width:100%;padding:0;border:0;background:transparent;text-align:inherit;cursor:zoom-in}
+.screen img{display:block;width:100%;aspect-ratio:9/16;object-fit:contain;background:#17131f}
+.screenCaption{position:absolute;left:10px;bottom:10px;padding:6px 9px;border-radius:999px;background:#181527cc;color:#fff;font-size:10.5px;font-weight:800;backdrop-filter:blur(8px);pointer-events:none}
+.imageModal{position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:16px;background:#100a20dd;backdrop-filter:blur(12px)}.imageModal.open{display:grid}.imageDialog{position:relative;width:min(100%,980px);max-height:calc(100dvh - 32px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.imageModalTop{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#fff}.imageModalTop b{font-family:var(--font-d)}.imageClose{width:42px;height:42px;border:1px solid #ffffff2d;border-radius:50%;background:#ffffff18;color:#fff;font-size:24px}.imageStage{min-height:0;display:grid;place-items:center;overflow:auto;border:1px solid #ffffff24;border-radius:22px;background:#090612;box-shadow:0 30px 90px -28px #000}.imageStage img{display:block;max-width:100%;max-height:calc(100dvh - 120px);width:auto;height:auto;object-fit:contain}
 .websiteBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#faf9fc}
 .websiteText{min-width:0}
 .websiteText span{display:block;color:var(--mut2);font-size:10.5px;font-family:var(--font-m);text-transform:uppercase;letter-spacing:.03em}
@@ -149,6 +152,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <div id="adminApps" class="reviewList"></div>
 </section>
 </main>
+<div class="imageModal" id="imageModal" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle"><div class="imageDialog"><div class="imageModalTop"><b id="imageModalTitle">App screenshot</b><button class="imageClose" type="button" aria-label="Close image" onclick="closeImageModal()">×</button></div><div class="imageStage" onclick="event.stopPropagation()"><img id="imageModalImg" alt="Expanded app screenshot"></div></div></div>
 <div class="rejectModal" id="rejectModal" role="dialog" aria-modal="true" aria-labelledby="rejectTitle"><div class="rejectDialog"><h3 id="rejectTitle">Reject application</h3><p>Write a clear reason. The developer will see this message in their applications page and can edit and resubmit for free.</p><textarea id="rejectReason" maxlength="500" placeholder="Example: Please replace screenshot 1 because it is unclear, and update the website URL."></textarea><div class="rejectActions"><button class="ghost" type="button" onclick="closeRejectModal()">Cancel</button><button class="danger" id="confirmRejectBtn" type="button" onclick="confirmReject()">Send rejection</button></div></div></div><div class="toast" id="toast"></div>
 <script>
 const API={login:'/api/pi-login',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats'};
@@ -165,7 +169,7 @@ async function loadAdmin(){if(!isAdmin())return restore();try{const [appsRespons
 function formatDate(value){if(!value)return '—';try{return new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}catch{return String(value)}}
 function card(app){
   const screenshots=Array.isArray(app.screenshot_urls)?app.screenshot_urls.filter(Boolean):[];
-  const screenshotHtml=screenshots.length?screenshots.map((url,index)=>`<div class="screen"><img src="${esc(url)}" alt="${esc(app.name)} screenshot ${index+1}" loading="lazy"></div>`).join(''):'<div class="empty">No screenshots uploaded.</div>';
+  const screenshotHtml=screenshots.length?screenshots.map((url,index)=>`<div class="screen"><button type="button" data-url="${esc(url)}" data-title="${esc(app.name)} screenshot ${index+1}" onclick="openImageModal(this.dataset.url,this.dataset.title)" aria-label="Open ${esc(app.name)} screenshot ${index+1}"><img src="${esc(url)}" alt="${esc(app.name)} screenshot ${index+1}" loading="lazy" decoding="async"><span class="screenCaption">Screenshot ${index+1} · Tap to enlarge</span></button></div>`).join(''):'<div class="empty">No screenshots uploaded.</div>';
   const website=String(app.website_url||'').trim();
   return `<article class="reviewCard">
     <div class="appTop">
@@ -206,6 +210,9 @@ function openRejectModal(id){rejectingAppId=id;rejectReason.value='';rejectModal
 function closeRejectModal(){rejectingAppId='';rejectModal.classList.remove('open')}
 async function confirmReject(){const reason=rejectReason.value.trim();if(reason.length<8)return toast('Write a clear rejection reason');const btn=confirmRejectBtn;btn.disabled=true;btn.classList.add('is-busy');try{await review(rejectingAppId,'rejected',reason);closeRejectModal()}finally{btn.disabled=false;btn.classList.remove('is-busy')}}
 async function review(id,status,adminNote=''){try{const response=await fetch(API.admin,{method:'PATCH',headers:headers(),body:JSON.stringify({id,status,adminNote,isFeatured:false})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to update app');toast(status==='rejected'?'Rejection message sent to developer':'App status updated');await loadAdmin()}catch(error){toast(error.message||'Review failed');throw error}}
+function openImageModal(url,title){imageModalImg.src=url;imageModalImg.alt=title;imageModalTitle.textContent=title;imageModal.classList.add('open');document.body.style.overflow='hidden'}
+function closeImageModal(){imageModal.classList.remove('open');imageModalImg.removeAttribute('src');document.body.style.overflow=''}
+imageModal.addEventListener('click',closeImageModal);document.addEventListener('keydown',event=>{if(event.key==='Escape'&&imageModal.classList.contains('open'))closeImageModal()});
 function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
 </script>
 
