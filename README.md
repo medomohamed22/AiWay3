@@ -54,7 +54,7 @@ Run `sql/storage-cleanup-permissions.sql` once in Supabase SQL Editor. Storage m
 
 ## v22 performance and interaction upgrade
 - Backward-compatible optional pagination, filtering, sorting and single-app reads on `/api/apps`.
-- Debounced search, URL state, sorting, favorites, recently viewed and quick preview.
+- Debounced search, URL state, sorting, favorites and quick preview.
 - Progressive image loading, lazy decoding, content visibility and lightweight reveal animations.
 - Load-more rendering reduces initial DOM size while preserving all existing backend/payment/admin flows.
 - Motion respects the operating-system reduced-motion preference.
