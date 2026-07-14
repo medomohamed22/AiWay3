@@ -104,7 +104,7 @@ a.back{color:var(--pd);font-weight:700;text-decoration:none;font-size:13.5px;dis
 </main>
 <div class="toast" id="toast"></div>
 <script>
-const API={login:'/api/pi-login',admin:'/api/admin-apps',stats:'/api/admin-stats'};
+const API={login:'/api/pi-login',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats'};
 let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null');
 addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restore();if(isAdmin())await loadAdmin()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}

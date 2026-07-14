@@ -67,7 +67,7 @@ h1,h2{font-family:var(--font-d)}
 <main id="content"><div class="loading">Loading app…</div></main>
 <script>
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const API={apps:'/api/apps',interaction:'/api/app-interactions',myRating:'/api/my-rating',login:'/api/pi-login'};
+const API={apps:'/api/apps',interaction:'/api/app-interactions',myRating:'/api/app-interactions',login:'/api/pi-login'};
 let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),currentApp=null,currentUrl='#',userStars=0;
 function safeUrl(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)?u.href:'#'}catch{return '#'}}
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}
