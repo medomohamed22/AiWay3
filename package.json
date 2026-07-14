@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
-    "jose": "6.1.0"
+    "jose": "6.1.0",
+    "sharp": "0.34.3"
   },
   "devDependencies": {
     "vercel": "48.1.0"

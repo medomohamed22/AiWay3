@@ -19,7 +19,7 @@ button{cursor:pointer}
 .topin{max-width:1080px;margin:auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{font-size:19px;font-weight:800;font-family:var(--font-d);letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
 .brand b{color:var(--p)}
-.mark{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 220deg,var(--p2),var(--pd),var(--p2));display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:0 0 auto;box-shadow:0 4px 12px #6d3fe655}
+.brandLogo{width:118px;height:34px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}
 .account,.primary,.ghost,.danger{border:0;border-radius:999px;padding:10px 15px;font-weight:750;font-size:13.5px;transition:.15s}
 .account,.primary{background:linear-gradient(135deg,var(--p2),var(--pd));color:#fff;box-shadow:0 6px 16px -6px #3f1f9c66}
 .account{max-width:54vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -130,7 +130,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .skeleton-grid{grid-template-columns:1fr}
 }
 @media(max-width:420px){
-  .brand{font-size:16px}.mark{width:29px;height:29px}.login,.account{max-width:46vw;padding:9px 11px}
+  .brand{font-size:16px}.brandLogo{width:104px;height:30px}.login,.account{max-width:46vw;padding:9px 11px}
   .previewRow{gap:8px}.preview{border-radius:13px}
   .sectionTitle{align-items:flex-start;gap:8px}.sectionTitle h2{font-size:18px}
   .appHead{grid-template-columns:72px minmax(0,1fr)!important}.appHead>.get{grid-column:1/-1;width:100%;margin-top:2px}
@@ -141,7 +141,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 </style>
 </head>
 <body><div class="app-loading-bar" id="appLoadingBar" aria-hidden="true"></div><div class="page-loader" id="pageLoader" role="status" aria-live="polite"><div class="loader-card"><div class="loader-orbit"></div><span>Loading AppHub…</span></div></div>
-<header class="top"><div class="topin"><div class="brand"><span class="mark">π</span>AppHub <b>Admin</b></div><button class="account" id="accountBtn" onclick="handleAccount()">Sign in with Pi</button></div></header>
+<header class="top"><div class="topin"><div class="brand"><img class="brandLogo" src="/assets/apphub-logo.webp" alt="AppHub"><b>Admin</b></div><button class="account" id="accountBtn" onclick="handleAccount()">Sign in with Pi</button></div></header>
 <main class="wrap">
 <a class="back" href="/">← Back to AppHub</a>
 <div class="hero"><h1>Admin dashboard</h1><p>Review every app's logo, full screenshots, owner details, and website before publishing.</p></div>
@@ -156,15 +156,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="rejectModal" id="rejectModal" role="dialog" aria-modal="true" aria-labelledby="rejectTitle"><div class="rejectDialog"><h3 id="rejectTitle">Reject application</h3><p>Write a clear reason. The developer will see this message in their applications page and can edit and resubmit for free.</p><textarea id="rejectReason" maxlength="500" placeholder="Example: Please replace screenshot 1 because it is unclear, and update the website URL."></textarea><div class="rejectActions"><button class="ghost" type="button" onclick="closeRejectModal()">Cancel</button><button class="danger" id="confirmRejectBtn" type="button" onclick="confirmReject()">Send rejection</button></div></div></div><div class="toast" id="toast"></div>
 <script>
 const API={login:'/api/pi-login',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats'};
-let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null');
+let auth=JSON.parse(sessionStorage.getItem('apphub_auth')||'null');
 addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restore();if(isAdmin())await loadAdmin()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}
 function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000)}
 function isAdmin(){return ['admin','moderator'].includes(String(auth?.user?.role||'').toLowerCase())}
 function restore(){const btn=document.getElementById('accountBtn'),notice=document.getElementById('accessNotice'),dashboard=document.getElementById('dashboard');if(auth?.user){btn.textContent='@'+auth.user.username;btn.title='Tap to sign out'}else{btn.textContent='Sign in with Pi';btn.title=''}if(isAdmin()){notice.hidden=true;dashboard.hidden=false}else{dashboard.hidden=true;notice.hidden=false;notice.textContent=auth?.user?'This Pi account is not registered as an admin. Tap your username to sign out and use the admin account.':'Sign in using the Pi account registered as admin in the database.'}}
 function handleAccount(){if(auth?.token)return logout();loginWithPi()}
-function logout(){auth=null;localStorage.removeItem('apphub_auth');localStorage.removeItem('apphub_pending_submission');restore();document.getElementById('adminApps').innerHTML='';toast('Signed out')}
-async function loginWithPi(){if(!window.Pi)return toast('Open this page inside Pi Browser');try{const result=await Pi.authenticate(['username','payments'],payment=>console.warn('Incomplete payment',payment));const response=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:result.accessToken})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Pi sign-in failed');auth=data;localStorage.setItem('apphub_auth',JSON.stringify(auth));restore();if(!isAdmin())return toast('This account is not an admin');toast('Admin signed in');await loadAdmin()}catch(error){console.error(error);toast(error.message||'Sign-in failed')}}
+function logout(){auth=null;sessionStorage.removeItem('apphub_auth');sessionStorage.removeItem('apphub_pending_submission');restore();document.getElementById('adminApps').innerHTML='';toast('Signed out')}
+async function loginWithPi(){if(!window.Pi)return toast('Open this page inside Pi Browser');try{const result=await Pi.authenticate(['username','payments'],payment=>console.warn('Incomplete payment',payment));const response=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:result.accessToken})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Pi sign-in failed');auth=data;sessionStorage.setItem('apphub_auth',JSON.stringify(auth));restore();if(!isAdmin())return toast('This account is not an admin');toast('Admin signed in');await loadAdmin()}catch(error){console.error(error);toast(error.message||'Sign-in failed')}}
 async function loadAdmin(){if(!isAdmin())return restore();try{const [appsResponse,statsResponse]=await Promise.all([fetch(API.admin,{headers:headers()}),fetch(API.stats,{headers:headers()})]);const appsData=await appsResponse.json(),statsData=await statsResponse.json();if(appsResponse.status===401||appsResponse.status===403){logout();throw new Error(appsData.error||'Admin access required')}if(!appsResponse.ok)throw new Error(appsData.error||'Unable to load apps');if(!statsResponse.ok)throw new Error(statsData.error||'Unable to load statistics');document.getElementById('revenue').textContent=Number(statsData.totalRevenuePi||0).toFixed(2)+' Pi';document.getElementById('pendingCount').textContent=statsData.pendingApps||0;const list=appsData.apps||[];document.getElementById('adminApps').innerHTML=list.length?list.map(card).join(''):'<div class="empty">No submitted apps found.</div>'}catch(error){console.error(error);toast(error.message||'Unable to load dashboard')}}
 function formatDate(value){if(!value)return '—';try{return new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}catch{return String(value)}}
 function card(app){

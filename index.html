@@ -22,7 +22,7 @@ button{cursor:pointer}
 .top{position:sticky;top:0;z-index:30;background:#fffffff2;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .topin{max-width:1080px;margin:auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-d);font-weight:800;font-size:19px;letter-spacing:-.02em}
-.mark{width:32px;height:32px;border-radius:10px;background:conic-gradient(from 220deg,var(--p2),var(--pd),var(--p2));display:grid;place-items:center;color:#fff;font-family:var(--font-d);font-weight:800;font-size:16px;box-shadow:0 4px 12px #6d3fe655;flex:0 0 auto}
+.brandLogo{width:118px;height:34px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}
 .login{border:0;border-radius:var(--r-pill);background:var(--pd);background:linear-gradient(135deg,var(--p2),var(--pd));color:#fff;padding:10px 16px;font-weight:700;font-size:13.5px;max-width:52vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 6px 16px -6px #3f1f9c66}
 
 /* layout */
@@ -218,7 +218,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .skeleton-grid{grid-template-columns:1fr}
 }
 @media(max-width:420px){
-  .brand{font-size:16px}.mark{width:29px;height:29px}.login,.account{max-width:46vw;padding:9px 11px}
+  .brand{font-size:16px}.brandLogo{width:104px;height:30px}.login,.account{max-width:46vw;padding:9px 11px}
   .previewRow{gap:8px}.preview{border-radius:13px}
   .sectionTitle{align-items:flex-start;gap:8px}.sectionTitle h2{font-size:18px}
   .appHead{grid-template-columns:72px minmax(0,1fr)!important}.appHead>.get{grid-column:1/-1;width:100%;margin-top:2px}
@@ -227,7 +227,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.loader-orbit,.app-loading-bar,.skeleton::after,.is-busy::after{animation-duration:1.5s}}
 
 </style></head><body><div class="app-loading-bar" id="appLoadingBar" aria-hidden="true"></div><div class="page-loader" id="pageLoader" role="status" aria-live="polite"><div class="loader-card"><div class="loader-orbit"></div><span>Loading AppHub…</span></div></div>
-<header class="top"><div class="topin"><div class="brand"><span class="mark">π</span>App<b style="color:var(--p)">Hub</b></div><button class="login" id="loginBtn" onclick="handleAccountButton()">Sign in with Pi</button></div></header>
+<header class="top"><div class="topin"><div class="brand"><img class="brandLogo" src="/assets/apphub-logo.webp" alt="AppHub"></div><button class="login" id="loginBtn" onclick="handleAccountButton()">Sign in with Pi</button></div></header>
 <main>
 <section class="page active" id="homePage">
   <div class="hero"><span class="eyebrow"><i></i>Curated Pi ecosystem</span><h1>Discover the best Pi apps.</h1><p>Browse reviewed Mainnet and Testnet apps, shops, AI tools and services from the Pi ecosystem.</p></div>
@@ -260,13 +260,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="modal promoModal" id="promoteModal"><div class="modalCard"><div class="row" style="justify-content:space-between"><h2>Promote App</h2><button class="ghost" onclick="closePromote()">Close</button></div><p class="meta">Featured apps appear above regular apps until the promotion expires.</p><div class="planGrid"><button class="plan" onclick="buyPromotion(3,10)"><b>3 Days — 10 Pi</b><small>Short featured boost</small></button><button class="plan" onclick="buyPromotion(14,20)"><b>14 Days — 20 Pi</b><small>Two-week promotion</small></button><button class="plan" onclick="buyPromotion(30,30)"><b>30 Days — 30 Pi</b><small>Maximum visibility</small></button></div></div></div><div class="toast" id="toast"></div>
 <script>
 const API={interactions:'/api/app-interactions',promote:'/api/promotion-complete',apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
-const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='mainnet';
+const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(sessionStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='mainnet';
 addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();renderFilters();await loadApps()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function appConfirm({title='Are you sure?',message='This action cannot be undone.',confirmText='Confirm',icon='!' }={}){return new Promise(resolve=>{const modal=document.getElementById('confirmModal'),accept=document.getElementById('confirmAccept'),cancel=document.getElementById('confirmCancel');document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMessage').textContent=message;document.getElementById('confirmIcon').textContent=icon;accept.textContent=confirmText;modal.classList.add('open');document.body.style.overflow='hidden';const finish=value=>{modal.classList.remove('open');document.body.style.overflow='';accept.onclick=null;cancel.onclick=null;modal.onclick=null;document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};accept.onclick=()=>finish(true);cancel.onclick=()=>finish(false);modal.onclick=e=>{if(e.target===modal)finish(false)};document.addEventListener('keydown',onKey);setTimeout(()=>cancel.focus(),0)})}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;loginBtn.title='Tap to sign out';profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}else{loginBtn.textContent='Sign in with Pi';loginBtn.title='';profileName.textContent='Sign in to manage your apps.';adminArea.style.display='none'}}
 function handleAccountButton(){if(auth?.token)return logout();return loginWithPi()}
-function logout(){auth=null;localStorage.removeItem('apphub_auth');localStorage.removeItem('apphub_pending_submission');restoreAuth();myApps.innerHTML='';toast('Signed out successfully');showPage('home',document.querySelectorAll('.navbtn')[0])}
+function logout(){auth=null;sessionStorage.removeItem('apphub_auth');sessionStorage.removeItem('apphub_pending_submission');restoreAuth();myApps.innerHTML='';toast('Signed out successfully');showPage('home',document.querySelectorAll('.navbtn')[0])}
 function onIncompletePaymentFound(payment){console.warn('Incomplete Pi payment found:',payment)}
 async function authenticatePi(){
   if(!window.Pi)throw Error('Open inside Pi Browser');
@@ -284,7 +284,7 @@ async function ensurePiPaymentsAuth(){
   const d=await r.json().catch(()=>({}));
   if(!r.ok)throw Error(d.error||'Unable to refresh Pi sign-in');
   auth=d;
-  localStorage.setItem('apphub_auth',JSON.stringify(auth));
+  sessionStorage.setItem('apphub_auth',JSON.stringify(auth));
   restoreAuth();
   return a;
 }
@@ -295,7 +295,7 @@ async function loginWithPi(){
     const d=await r.json();
     if(!r.ok)throw Error(d.error||'Pi sign-in failed');
     auth=d;
-    localStorage.setItem('apphub_auth',JSON.stringify(auth));
+    sessionStorage.setItem('apphub_auth',JSON.stringify(auth));
     restoreAuth();
     toast('Signed in with payment permission');
     return auth;
@@ -343,7 +343,7 @@ function resetAppForm(){const form=document.getElementById('appForm');form.reset
 async function upload(fileOrInput,kind){const ready=fileOrInput?._compressedFile||fileOrInput?.files?.[0]||fileOrInput;const dataUrl=await toDataUrl(ready);const r=await fetch(API.upload,{method:'POST',headers:headers(),body:JSON.stringify({dataUrl,kind})});const d=await r.json();if(!r.ok)throw Error(d.error);return d.url}
 async function createPayment(appPayload){
   await ensurePiPaymentsAuth();
-  localStorage.setItem('apphub_pending_submission',JSON.stringify(appPayload));
+  sessionStorage.setItem('apphub_pending_submission',JSON.stringify(appPayload));
   return new Promise((resolve,reject)=>{
     let settled=false;
     const fail=error=>{if(settled)return;settled=true;reject(error instanceof Error?error:new Error(String(error||'Payment failed')))};
@@ -362,7 +362,7 @@ async function createPayment(appPayload){
             const r=await fetch(API.complete,{method:'POST',headers:headers(),body:JSON.stringify({paymentId,txid,app:appPayload})});
             const d=await r.json().catch(()=>({}));
             if(!r.ok)return fail(new Error(typeof d.error==='string'?d.error:JSON.stringify(d.error||'Payment completion failed')));
-            if(settled)return;settled=true;localStorage.removeItem('apphub_pending_submission');resolve(d.app);
+            if(settled)return;settled=true;sessionStorage.removeItem('apphub_pending_submission');resolve(d.app);
           }catch(e){fail(e)}
         },
         onCancel:()=>fail(new Error('Payment cancelled')),

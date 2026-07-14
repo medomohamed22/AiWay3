@@ -114,11 +114,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script>
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const API={apps:'/api/apps',interaction:'/api/app-interactions',myRating:'/api/app-interactions',login:'/api/pi-login'};
-let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),currentApp=null,currentUrl='#',userStars=0;
+let auth=JSON.parse(sessionStorage.getItem('apphub_auth')||'null'),currentApp=null,currentUrl='#',userStars=0;
 function safeUrl(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)?u.href:'#'}catch{return '#'}}
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}
-function visitorId(){let id=localStorage.getItem('apphub_visitor_id');if(!id){id=(crypto.randomUUID?.()||Date.now()+'-'+Math.random()).replace(/[^a-zA-Z0-9_-]/g,'');localStorage.setItem('apphub_visitor_id',id)}return id}
-async function login(){if(!window.Pi)throw new Error('Open inside Pi Browser to sign in');const result=await Pi.authenticate(['username'],p=>console.warn('Incomplete payment',p));const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:result.accessToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Sign-in failed');auth=d;localStorage.setItem('apphub_auth',JSON.stringify(auth));return auth}
+function visitorId(){let id=sessionStorage.getItem('apphub_visitor_id');if(!id){id=(crypto.randomUUID?.()||Date.now()+'-'+Math.random()).replace(/[^a-zA-Z0-9_-]/g,'');sessionStorage.setItem('apphub_visitor_id',id)}return id}
+async function login(){if(!window.Pi)throw new Error('Open inside Pi Browser to sign in');const result=await Pi.authenticate(['username'],p=>console.warn('Incomplete payment',p));const r=await fetch(API.login,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:result.accessToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Sign-in failed');auth=d;sessionStorage.setItem('apphub_auth',JSON.stringify(auth));return auth}
 async function ensureAuth(){if(auth?.token)return auth;return login()}
 async function interact(action,extra={}){const r=await fetch(API.interaction,{method:'POST',headers:headers(),body:JSON.stringify({action,appId:currentApp.id,...extra})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to save');return d}
 function starsHtml(){return [1,2,3,4,5].map(n=>`<button class="starBtn ${n<=userStars?'active':''}" onclick="rate(${n})" aria-label="${n} stars">★</button>`).join('')}
