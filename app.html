@@ -4,9 +4,62 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>AppHub — App details</title>
+<title>AppHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--p:#6d44d7;--ink:#111115;--mut:#797980;--line:#e8e8ec;--bg:#fff;--blue:#1889e6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.top{position:sticky;top:0;z-index:20;background:#fffc;border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}.topin{max-width:900px;margin:auto;height:62px;padding:0 16px;display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center}.iconBtn{width:38px;height:38px;display:grid;place-items:center;border:0;background:transparent;border-radius:50%;color:#222}.iconBtn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.miniBrand{display:flex;align-items:center;gap:9px;min-width:0;font-weight:800}.miniBrand img{width:31px;height:31px;border-radius:8px;object-fit:cover}.miniBrand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page{max-width:900px;margin:auto;padding:20px 16px 48px}.appHead{display:grid;grid-template-columns:98px minmax(0,1fr) auto;gap:16px;align-items:center;padding:10px 0 22px}.appLogo{width:98px;height:98px;border-radius:24px;object-fit:cover;border:1px solid var(--line);box-shadow:0 5px 18px #00000012}.appName{font-size:28px;line-height:1.1;margin:0 0 7px}.tagline{margin:0;color:var(--mut);line-height:1.45}.network{display:inline-flex;margin-top:9px;border-radius:999px;padding:5px 9px;background:#dcf7ed;border:1px solid #a5e1cd;color:#15936a;font-size:11px;font-weight:900;text-transform:uppercase}.network.testnet{background:#fff2d9;border-color:#efd49d;color:#bf821c}.get{border:0;background:var(--blue);color:#fff;border-radius:999px;padding:11px 23px;font-size:18px;font-weight:850}.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -16px 25px;padding:14px 16px}.stat{text-align:center;border-right:1px solid var(--line);padding:3px 7px;min-width:0}.stat:last-child{border-right:0}.stat small{display:block;color:#999;font-size:9px;text-transform:uppercase;font-weight:800;letter-spacing:.05em}.stat b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stars{color:#1389e8;letter-spacing:-1px;font-size:11px}.section{padding:18px 0;border-bottom:1px solid var(--line)}.section h2{font-size:20px;margin:0 0 10px}.section p{font-size:15px;line-height:1.6;margin:0;color:#333}.version{color:#999;font-size:12px;margin-bottom:7px}.screens{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 0 12px}.screens img{display:block;width:min(78vw,360px);height:auto;object-fit:contain;border-radius:19px;border:1px solid var(--line);scroll-snap-align:start;flex:0 0 auto;background:#f2f2f4}.infoRow{display:flex;justify-content:space-between;gap:18px;padding:15px 0;border-bottom:1px solid #f0f0f2}.infoRow:last-child{border-bottom:0}.infoRow span:first-child{color:#96969b}.infoRow span:last-child{text-align:right}.link{color:var(--blue);text-decoration:none;font-weight:650}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.chip{padding:7px 12px;border-radius:999px;background:#f2f2f4;color:#555;font-size:12px}.loading,.error{padding:80px 20px;text-align:center;color:var(--mut)}@media(max-width:620px){.page{padding:14px 12px 40px}.appHead{grid-template-columns:82px minmax(0,1fr) auto;gap:12px}.appLogo{width:82px;height:82px;border-radius:20px}.appName{font-size:22px}.tagline{font-size:13px}.get{padding:9px 18px;font-size:16px}.stats{margin-left:-12px;margin-right:-12px;padding-left:8px;padding-right:8px}.screens img{width:82vw;height:auto}.stat b{font-size:12px}}
+:root{--p:#6d3fe6;--pd:#3f1f9c;--p-soft:#efe9ff;--ink:#181527;--mut:#84809333;--mut2:#84809d;--line:#eae7f4;--bg:#fff;--blue:#1889e6;--r-lg:22px;--r-md:16px;--font-d:'Sora',system-ui,sans-serif;--font-b:'Inter',system-ui,sans-serif;--font-m:'JetBrains Mono',monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-b);-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-d)}
+.top{position:sticky;top:0;z-index:20;background:#fffffff2;border-bottom:1px solid var(--line);backdrop-filter:blur(16px)}
+.topin{max-width:900px;margin:auto;height:60px;padding:0 16px;display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center}
+.iconBtn{width:38px;height:38px;display:grid;place-items:center;border:0;background:var(--p-soft);border-radius:50%;color:var(--pd);transition:.15s}
+.iconBtn:active{transform:scale(.92)}
+.iconBtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.miniBrand{display:flex;align-items:center;justify-content:center;gap:9px;min-width:0;font-weight:700;font-family:var(--font-d)}
+.miniBrand img{width:28px;height:28px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+.miniBrand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page{max-width:900px;margin:auto;padding:22px 16px 56px}
+.appHead{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:16px;align-items:center;padding:6px 0 24px}
+.appLogo{width:96px;height:96px;border-radius:26px;object-fit:cover;border:1px solid var(--line);box-shadow:0 10px 26px -12px rgba(31,14,79,.28)}
+.appName{font-size:25px;line-height:1.12;margin:0 0 7px;letter-spacing:-.02em}
+.tagline{margin:0;color:var(--mut2);line-height:1.5;font-size:13.5px}
+.network{display:inline-flex;margin-top:10px;border-radius:999px;padding:5px 10px;background:#dcf7ed;border:1px solid #a5e1cd;color:#15936a;font-size:10.5px;font-family:var(--font-m);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.network.testnet{background:#fff2d9;border-color:#efd49d;color:#bf821c}
+.get{border:0;background:linear-gradient(135deg,#2d99f2,var(--blue));color:#fff;border-radius:999px;padding:12px 24px;font-size:15.5px;font-weight:750;box-shadow:0 10px 22px -10px #1889e666}
+.get:active{transform:scale(.96)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -16px 26px;padding:16px}
+.stat{text-align:center;border-right:1px solid var(--line);padding:3px 7px;min-width:0}
+.stat:last-child{border-right:0}
+.stat small{display:block;color:#a29fb0;font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:.06em;font-family:var(--font-m)}
+.stat b{display:block;margin-top:5px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stars{color:#1389e8;letter-spacing:-1px;font-size:12px}
+.section{padding:20px 0;border-bottom:1px solid var(--line)}
+.section h2{font-size:18px;margin:0 0 10px;letter-spacing:-.01em}
+.section p{font-size:14.5px;line-height:1.65;margin:0;color:#3a3648}
+.version{color:#a29fb0;font-size:11.5px;margin-bottom:8px;font-family:var(--font-m)}
+.screens{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px}
+.screens img{display:block;width:min(76vw,340px);height:auto;object-fit:contain;border-radius:20px;border:1px solid var(--line);scroll-snap-align:start;flex:0 0 auto;background:#f2f2f6;box-shadow:0 10px 24px -14px rgba(31,14,79,.22)}
+.infoRow{display:flex;justify-content:space-between;gap:18px;padding:14px 0;border-bottom:1px solid #f1eff6;font-size:13.5px}
+.infoRow:last-child{border-bottom:0}
+.infoRow span:first-child{color:#a29fb0}
+.infoRow span:last-child{text-align:right;font-weight:600}
+.link{color:var(--blue);text-decoration:none;font-weight:700}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.chip{padding:7px 13px;border-radius:999px;background:var(--p-soft);color:var(--pd);font-size:11.5px;font-weight:600}
+.loading,.error{padding:90px 20px;text-align:center;color:var(--mut2);font-size:14px}
+@media(max-width:620px){
+  .page{padding:16px 12px 44px}
+  .appHead{grid-template-columns:78px minmax(0,1fr) auto;gap:12px}
+  .appLogo{width:78px;height:78px;border-radius:20px}
+  .appName{font-size:20px}
+  .tagline{font-size:12.5px}
+  .get{padding:10px 18px;font-size:14px}
+  .stats{margin-left:-12px;margin-right:-12px;padding-left:10px;padding-right:10px}
+  .screens img{width:80vw;height:auto}
+  .stat b{font-size:12.5px}
+}
 </style>
 </head>
 <body>
@@ -23,7 +76,7 @@ async function load(){
   if(!r.ok) throw new Error(d.error||'Unable to load app');
   const a=(d.apps||[]).find(x=>String(x.id)===id);
   if(!a) throw new Error('This app is unavailable or not published.');
-  document.title=`${a.name} — AppHub`; topLogo.src=a.icon_url; topName.textContent=a.name;
+  document.title="AppHub"; topLogo.src=a.icon_url; topName.textContent=a.name;
   const shots=(a.screenshot_urls||[]).slice(0,3);
   const url=safeUrl(a.website_url);
   content.innerHTML=`<div class="page">
