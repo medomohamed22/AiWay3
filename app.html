@@ -116,6 +116,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 
 .langToggle{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--pd);font-weight:800;display:grid;place-items:center}.topSpacer{width:42px}.favoriteInside{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 15px;font-weight:800;color:var(--pd)}.favoriteInside.active{color:#d52d55;background:#fff0f4}.verifiedIcon{display:inline-grid;place-items:center;width:24px;height:24px;margin-inline-start:7px;color:#fff;background:linear-gradient(145deg,#8b4ee8,#5d249d);clip-path:polygon(50% 0%,62% 8%,76% 5%,84% 17%,97% 22%,94% 37%,100% 50%,92% 62%,95% 77%,81% 83%,75% 96%,61% 92%,50% 100%,38% 92%,24% 96%,18% 83%,5% 77%,8% 62%,0 50%,6% 37%,3% 22%,16% 17%,24% 5%,38% 8%);font-size:14px;vertical-align:middle}html[dir="rtl"] body{direction:rtl}html[dir="rtl"] .screens{direction:rtl}.headActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* v24.6 professional Arabic detail layout */
+html[dir="rtl"] .appHead{direction:rtl;grid-template-columns:minmax(0,1fr) 96px!important;grid-template-areas:"info logo" "actions actions"!important}
+html[dir="rtl"] .appHead>div:nth-child(2){min-width:0;width:100%;text-align:right;direction:rtl;justify-self:stretch}
+html[dir="rtl"] .appName,html[dir="rtl"] .tagline{width:100%;max-width:none;text-align:right;overflow-wrap:anywhere;word-break:normal}
+html[dir="rtl"] .tagline{line-height:1.7}
+html[dir="rtl"] .network{margin-left:0;margin-right:0}
+html[dir="rtl"] .section,html[dir="rtl"] .section h2,html[dir="rtl"] .section p{text-align:right}
+html[dir="rtl"] .infoRow{direction:rtl}
+html[dir="rtl"] .infoRow span:last-child{text-align:left}
+@media(max-width:620px){html[dir="rtl"] .appHead{grid-template-columns:minmax(0,1fr) 78px!important}}
+@media(max-width:420px){html[dir="rtl"] .appHead{grid-template-columns:minmax(0,1fr) 72px!important;grid-template-areas:"info logo" "actions actions"!important}.appHead{align-items:start}.appHead .appLogo{margin-top:2px}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="dns-prefetch" href="//fonts.gstatic.com"></head>
 <body><div class="app-loading-bar" id="appLoadingBar" aria-hidden="true"></div><div class="page-loader" id="pageLoader" role="status" aria-live="polite"><div class="loader-card"><div class="loader-orbit"></div><span>Loading AppHub…</span></div></div>
