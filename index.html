@@ -151,6 +151,19 @@ button{cursor:pointer}
 .plan small{color:var(--mut2)}
 .toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%) translateY(20px);background:#211b2c;color:#fff;padding:12px 18px;border-radius:var(--r-pill);opacity:0;pointer-events:none;transition:.2s;z-index:90;font-size:13.5px;box-shadow:0 12px 30px -10px #00000055}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* branded confirmation dialog */
+.confirmModal{z-index:120}
+.confirmCard{max-width:430px;text-align:center;padding:28px 24px 22px;border:1px solid var(--line);box-shadow:0 28px 80px -28px rgba(31,14,79,.55);animation:dialogIn .18s ease-out}
+.confirmIcon{width:62px;height:62px;margin:0 auto 16px;border-radius:22px;display:grid;place-items:center;background:var(--bad-soft);color:var(--bad);font-size:29px;font-weight:900;box-shadow:inset 0 0 0 1px rgba(200,50,74,.08)}
+.confirmCard h3{margin:0 0 8px;font:800 22px/1.2 var(--font-d);color:var(--text)}
+.confirmCard p{margin:0 auto 22px;color:var(--mut2);line-height:1.65;max-width:340px}
+.confirmActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.confirmActions button{min-height:46px}
+.confirmDanger{border:0;border-radius:var(--r-sm);background:linear-gradient(135deg,#ef5b72,#b91c3b);color:#fff;font-weight:800;box-shadow:0 12px 24px -12px rgba(185,28,59,.7)}
+.confirmDanger:hover{transform:translateY(-1px);filter:brightness(1.03)}
+@keyframes dialogIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@media(max-width:480px){.confirmCard{padding:24px 18px 18px}.confirmActions{grid-template-columns:1fr}.confirmActions .confirmDanger{order:-1}}
+
 
 @media(max-width:600px){
   .page{padding:16px 12px 8px}
@@ -232,12 +245,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 </main>
 <nav class="bottom"><button class="navbtn active" onclick="showPage('home',this)" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path></svg>Home</button><button class="navbtn" onclick="showPage('apps',this)" aria-label="Apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect></svg>Apps</button><button class="navbtn add" onclick="showPage('add',this)" aria-label="Add App"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Add App</button><button class="navbtn" onclick="showPage('profile',this)" aria-label="Profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20c.8-4 3.4-6 7.5-6s6.7 2 7.5 6"></path></svg>Profile</button></nav>
 <div class="modal" id="details"><div class="modalCard"><div class="row" style="justify-content:flex-end"><button class="ghost" onclick="closeDetails()">Close</button></div><div class="detailHeader"><img id="detailLogo" class="detailLogo" alt=""><div><h2 id="detailTitle"></h2><div><span class="badge" id="detailCat"></span><span class="badge" id="detailNet"></span></div></div></div><div class="slider"><div class="sliderTrack" id="detailGallery"></div></div><div class="sliderDots" id="sliderDots"></div><p id="detailDesc"></p><button class="primary" id="openApp">Open website</button></div></div>
+
+<div class="modal confirmModal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+  <div class="modalCard confirmCard">
+    <div class="confirmIcon" id="confirmIcon">!</div>
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMessage">This action cannot be undone.</p>
+    <div class="confirmActions">
+      <button class="ghost" type="button" id="confirmCancel">Cancel</button>
+      <button class="confirmDanger" type="button" id="confirmAccept">Delete</button>
+    </div>
+  </div>
+</div>
 <div class="modal promoModal" id="promoteModal"><div class="modalCard"><div class="row" style="justify-content:space-between"><h2>Promote App</h2><button class="ghost" onclick="closePromote()">Close</button></div><p class="meta">Featured apps appear above regular apps until the promotion expires.</p><div class="planGrid"><button class="plan" onclick="buyPromotion(3,10)"><b>3 Days — 10 Pi</b><small>Short featured boost</small></button><button class="plan" onclick="buyPromotion(14,20)"><b>14 Days — 20 Pi</b><small>Two-week promotion</small></button><button class="plan" onclick="buyPromotion(30,30)"><b>30 Days — 30 Pi</b><small>Maximum visibility</small></button></div></div></div><div class="toast" id="toast"></div>
 <script>
 const API={interactions:'/api/app-interactions',promote:'/api/promotion-complete',apps:'/api/apps',login:'/api/pi-login',upload:'/api/upload-image',submit:'/api/submit-app',mine:'/api/my-apps',manage:'/api/manage-app',admin:'/api/admin-apps',stats:'/api/admin-apps?mode=stats',approve:'/api/payment-approve',complete:'/api/payment-complete'};
 const cats=['All','Shop','AI','Games','Business','Tools','Finance','Social'];let auth=JSON.parse(localStorage.getItem('apphub_auth')||'null'),piAuth=null,apps=[],category='All',network='mainnet';
 addEventListener('DOMContentLoaded',async()=>{if(window.Pi)Pi.init({version:'2.0',sandbox:false});restoreAuth();renderFilters();await loadApps()});
 function headers(){return{'Content-Type':'application/json',...(auth?.token?{Authorization:'Bearer '+auth.token}:{})}}function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
+function appConfirm({title='Are you sure?',message='This action cannot be undone.',confirmText='Confirm',icon='!' }={}){return new Promise(resolve=>{const modal=document.getElementById('confirmModal'),accept=document.getElementById('confirmAccept'),cancel=document.getElementById('confirmCancel');document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMessage').textContent=message;document.getElementById('confirmIcon').textContent=icon;accept.textContent=confirmText;modal.classList.add('open');document.body.style.overflow='hidden';const finish=value=>{modal.classList.remove('open');document.body.style.overflow='';accept.onclick=null;cancel.onclick=null;modal.onclick=null;document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};accept.onclick=()=>finish(true);cancel.onclick=()=>finish(false);modal.onclick=e=>{if(e.target===modal)finish(false)};document.addEventListener('keydown',onKey);setTimeout(()=>cancel.focus(),0)})}
 function restoreAuth(){if(auth?.user){loginBtn.textContent='@'+auth.user.username;loginBtn.title='Tap to sign out';profileName.textContent='@'+auth.user.username;if(['admin','moderator'].includes(auth.user.role))adminArea.style.display='block'}else{loginBtn.textContent='Sign in with Pi';loginBtn.title='';profileName.textContent='Sign in to manage your apps.';adminArea.style.display='none'}}
 function handleAccountButton(){if(auth?.token)return logout();return loginWithPi()}
 function logout(){auth=null;localStorage.removeItem('apphub_auth');localStorage.removeItem('apphub_pending_submission');restoreAuth();myApps.innerHTML='';toast('Signed out successfully');showPage('home',document.querySelectorAll('.navbtn')[0])}
@@ -371,7 +397,7 @@ document.getElementById('appForm').addEventListener('submit',async e=>{
   }catch(err){console.error(err);toast(err.message||'Submission failed')}finally{btn.disabled=false;btn.textContent=editingAppId.value?'Save changes & resubmit':originalText}
 });
 async function loadMyApps(){if(!auth?.token){myApps.innerHTML='<div class="empty">Sign in with Pi first.</div>';return}const r=await fetch(API.mine,{headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);window.myAppData=d.apps;myApps.innerHTML=d.apps.length?d.apps.map(a=>`<div class="panel" style="padding:10px 14px">${card(a)}<div class="analytics"><div class="metric"><b>${Number(a.views_count||0)}</b><span>Views</span></div><div class="metric"><b>${Number(a.get_clicks_count||0)}</b><span>Get clicks</span></div><div class="metric"><b>${Number(a.rating||0).toFixed(1)}</b><span>Avg rating</span></div><div class="metric"><b>${Number(a.ratings_count||0)}</b><span>Ratings</span></div></div>${a.status==='rejected'&&a.admin_note?`<div class="rejectionNote"><b>Reason for rejection</b>${esc(a.admin_note)}</div>`:''}<div class="row" style="margin:10px 0 4px"><span class="badge status-${a.status}">${a.status}</span>${a.is_verified?'<span class="badge status-published">Verified</span>':''}${Number(a.open_reports_count||0)?`<span class="badge status-rejected">${a.open_reports_count} open reports</span>`:''}<button class="ghost" onclick="editApp('${a.id}')">Edit & resubmit</button>${a.status==='published'?`<button class="promoteBtn ghost" onclick="openPromote('${a.id}')">Promote</button>`:''}<button class="danger" onclick="deleteApp('${a.id}')">Delete</button></div></div>`).join(''):'<div class="empty">You have not submitted any apps.</div>'}
-async function deleteApp(id){if(!confirm('Delete this app?'))return;const r=await fetch(API.manage+'?id='+id,{method:'DELETE',headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);toast('Deleted');loadMyApps()}
+async function deleteApp(id){const ok=await appConfirm({title:'Delete this app?',message:'The app and its stored information will be removed from your account. This action cannot be undone.',confirmText:'Yes, delete app',icon:'×'});if(!ok)return;const r=await fetch(API.manage+'?id='+id,{method:'DELETE',headers:headers()}),d=await r.json();if(!r.ok)return toast(d.error);toast('App deleted successfully');loadMyApps()}
 function editApp(id){const a=(window.myAppData||[]).find(x=>x.id===id);if(!a)return;const form=document.getElementById('appForm');editingAppId.value=a.id;form.elements.name.value=a.name||'';form.elements.category.value=a.category||'Shop';form.elements.network.value=a.network||'mainnet';form.elements.websiteUrl.value=a.website_url||'';form.elements.shortDescription.value=a.short_description||'';form.elements.developerName.value=a.developer_name||'';form.elements.contactEmail.value=a.contact_email||'';setPreview('logoPreview',a.icon_url||'',a.icon_url||'');const shots=Array.isArray(a.screenshot_urls)?a.screenshot_urls:[];['shot1Preview','shot2Preview','shot3Preview'].forEach((pid,i)=>setPreview(pid,shots[i]||'',shots[i]||''));formTitle.textContent='Edit App';formSubtitle.textContent='Change any data and resubmit it for admin review without another fee.';paymentNotice.style.display='none';submitAppBtn.textContent='Save changes & resubmit';cancelEditBtn.style.display='inline-block';showPage('add',document.querySelectorAll('.navbtn')[2]);window.scrollTo({top:0,behavior:'smooth'})}
 
 let promotionAppId=null;
