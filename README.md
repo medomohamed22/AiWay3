@@ -44,3 +44,9 @@ Run `sql/engagement-features.sql` after the base schema. It adds:
 - New and replacement logos/screenshots are resized and converted to WebP in the browser before upload.
 - Logos use a maximum 900px dimension at high quality; screenshots use a maximum 1800px dimension at high quality.
 - Admin rejection requires a written reason, which appears to the developer in My Apps.
+
+## Automatic Storage cleanup (v19)
+
+When an owner deletes an app, the backend removes its logo and screenshots from the `app-media` bucket before deleting the database row. When an owner replaces or removes an image during editing, the app is updated first and then media files that are no longer referenced are removed automatically.
+
+Run `sql/storage-cleanup-permissions.sql` once in Supabase SQL Editor. Storage mutations stay backend-only through `SUPABASE_SERVICE_ROLE_KEY`; never expose that key in browser code.
