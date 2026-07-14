@@ -67,12 +67,12 @@ button{cursor:pointer}
 .listShell{background:transparent;border:0;padding:0}
 @media(min-width:720px){.grid{grid-template-columns:repeat(2,1fr)}}
 
-.appRow{display:grid;grid-template-columns:60px minmax(0,1fr) auto;align-items:center;gap:13px;padding:13px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.appRow{display:grid;grid-template-columns:60px minmax(0,1fr) auto;grid-template-areas:"logo info actions";align-items:center;gap:13px;padding:13px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
 .appRow:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
 .appRow:active{transform:translateY(0) scale(.99)}
-.appRowLogo{width:60px;height:60px;border-radius:16px;object-fit:cover;background:var(--p-soft);border:1px solid var(--line);transition:transform .25s ease;transform-style:preserve-3d}
+.appRowLogo{grid-area:logo;width:60px;height:60px;border-radius:16px;object-fit:cover;background:var(--p-soft);border:1px solid var(--line);transition:transform .25s ease;transform-style:preserve-3d}
 @media(hover:hover) and (pointer:fine){.appRow{perspective:600px}.appRow:hover .appRowLogo{transform:rotateY(-10deg) rotateX(6deg) scale(1.06)}}
-.appRowInfo{min-width:0}
+.appRowInfo{grid-area:info;min-width:0}
 .appRowTitleLine{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
 .appRowTitle{margin:0;font-size:15.5px;line-height:1.25;font-weight:700;font-family:var(--font-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .appRowDesc{margin:4px 0 0;color:var(--mut2);font-size:12.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.appMeta{display:flex;gap:10px;margin-top:6px;color:var(--mut2);font-size:10.5px;font-family:var(--font-m)}.verifiedBadge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:11px;font-weight:900}.analytics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.metric{background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.metric b{display:block;font-size:16px}.metric span{font-size:10px;color:var(--mut2)}
@@ -177,6 +177,7 @@ button{cursor:pointer}
   .field.full{grid-column:auto}
   .previewRow{grid-template-columns:repeat(2,1fr)}
   .appRow{grid-template-columns:52px minmax(0,1fr) auto;gap:10px;padding:11px}
+  html[dir="rtl"] .appRow{grid-template-columns:auto minmax(0,1fr) 52px}
   .appRowLogo{width:52px;height:52px;border-radius:14px}
   .appRowTitle{font-size:14px}
   .appRowDesc{font-size:11.5px}
@@ -215,6 +216,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .previewRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .row{flex-wrap:wrap}.row>.primary,.row>.ghost,.row>.danger{min-height:46px}
   .appRow{grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:11px}
+  html[dir="rtl"] .appRow{grid-template-columns:auto minmax(0,1fr) 54px}
   .appRowLogo{width:54px;height:54px;border-radius:14px}.getBtn{padding:9px 13px;min-width:56px}
   .analytics{grid-template-columns:repeat(2,1fr)}
   .modalCard{width:min(100% - 16px,620px);max-height:calc(100dvh - 20px);overflow:auto;border-radius:20px}
@@ -233,7 +235,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 
 /* v22 interaction and performance layer */
-.toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:-7px 0 12px}.toolbar select{min-width:150px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:10px 34px 10px 13px;color:var(--ink-soft);font-weight:700}.compact{padding:10px 13px;border-radius:var(--r-pill)}.clearSearch{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mut2);font-size:22px;width:32px;height:32px;display:none}.search.has-value .clearSearch{display:grid;place-items:center}.search input{padding-right:46px}.loadMoreWrap{text-align:center;padding:14px 0 4px}.loadMore{min-width:150px}.loadMore[hidden]{display:none}.smartSection{margin-top:28px}.textBtn{border:0;background:transparent;color:var(--p);font-weight:800}.favBtn,.quickBtn{border:0;background:var(--surface-alt);color:var(--pd);width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:18px;transition:transform .18s ease,background .18s}.favBtn.active{background:var(--bad-soft);color:var(--bad)}.favBtn:active,.quickBtn:active{transform:scale(.88)}.cardActions{display:flex;gap:6px;align-items:center}.quickCard{max-width:650px;position:relative;overflow:hidden}.quickClose{position:absolute;z-index:2;right:12px;top:12px;border:0;width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);font-size:22px}.quickHero{display:grid;grid-template-columns:86px 1fr;gap:16px;align-items:center;padding-right:38px}.quickHero img{width:86px;height:86px;border-radius:22px;object-fit:cover}.quickGallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.quickGallery img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:14px;background:var(--surface-alt)}.quickActions{display:flex;gap:8px}.quickActions>*{flex:1}.reveal{opacity:0;transform:translateY(12px);transition:opacity .42s ease,transform .42s cubic-bezier(.2,.8,.2,1)}.reveal.visible{opacity:1;transform:none}.appRow{content-visibility:auto;contain-intrinsic-size:88px}.appRowLogo{opacity:.15;filter:blur(8px)}.appRowLogo.image-ready{opacity:1;filter:none;transition:opacity .3s,filter .35s}.hero::before{animation:floatOrb 8s ease-in-out infinite}.hero::after{animation:floatOrb 11s ease-in-out infinite reverse}@keyframes floatOrb{50%{transform:translate(-12px,14px) scale(1.05)}}
+.toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:-7px 0 12px}.toolbar select{min-width:150px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:10px 34px 10px 13px;color:var(--ink-soft);font-weight:700}.compact{padding:10px 13px;border-radius:var(--r-pill)}.clearSearch{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mut2);font-size:22px;width:32px;height:32px;display:none}.search.has-value .clearSearch{display:grid;place-items:center}.search input{padding-right:46px}.loadMoreWrap{text-align:center;padding:14px 0 4px}.loadMore{min-width:150px}.loadMore[hidden]{display:none}.smartSection{margin-top:28px}.textBtn{border:0;background:transparent;color:var(--p);font-weight:800}.favBtn,.quickBtn{border:0;background:var(--surface-alt);color:var(--pd);width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:18px;transition:transform .18s ease,background .18s}.favBtn.active{background:var(--bad-soft);color:var(--bad)}.favBtn:active,.quickBtn:active{transform:scale(.88)}.cardActions{grid-area:actions;display:flex;gap:6px;align-items:center}.quickCard{max-width:650px;position:relative;overflow:hidden}.quickClose{position:absolute;z-index:2;right:12px;top:12px;border:0;width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);font-size:22px}.quickHero{display:grid;grid-template-columns:86px 1fr;gap:16px;align-items:center;padding-right:38px}.quickHero img{width:86px;height:86px;border-radius:22px;object-fit:cover}.quickGallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.quickGallery img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:14px;background:var(--surface-alt)}.quickActions{display:flex;gap:8px}.quickActions>*{flex:1}.reveal{opacity:0;transform:translateY(12px);transition:opacity .42s ease,transform .42s cubic-bezier(.2,.8,.2,1)}.reveal.visible{opacity:1;transform:none}.appRow{content-visibility:auto;contain-intrinsic-size:88px}.appRowLogo{opacity:.15;filter:blur(8px)}.appRowLogo.image-ready{opacity:1;filter:none;transition:opacity .3s,filter .35s}.hero::before{animation:floatOrb 8s ease-in-out infinite}.hero::after{animation:floatOrb 11s ease-in-out infinite reverse}@keyframes floatOrb{50%{transform:translate(-12px,14px) scale(1.05)}}
 @media(max-width:560px){.toolbar{align-items:stretch}.toolbar select{min-width:0;flex:1}.quickHero{grid-template-columns:68px 1fr}.quickHero img{width:68px;height:68px;border-radius:18px}.quickGallery{overflow:auto;grid-template-columns:repeat(3,75%);scroll-snap-type:x mandatory}.quickGallery img{scroll-snap-align:center}.cardActions{flex-direction:column}.favBtn,.quickBtn{width:32px;height:32px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
 
@@ -244,9 +246,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 html[dir="rtl"] body{direction:rtl}
 html[dir="rtl"] .siteBrandLogo{object-position:right center}
 html[dir="rtl"] .topin,html[dir="rtl"] .sectionTitle,html[dir="rtl"] .appRowTitleLine{direction:rtl}
-html[dir="rtl"] .appRow{grid-template-columns:auto minmax(0,1fr) 60px}
-html[dir="rtl"] .appRowLogo{grid-column:3}.appRowInfo{grid-column:auto}
-html[dir="rtl"] .cardActions{grid-column:1;grid-row:1}
+html[dir="rtl"] .appRow{grid-template-columns:auto minmax(0,1fr) 60px;grid-template-areas:"actions info logo";text-align:right}
+html[dir="rtl"] .appRowLogo{grid-area:logo}
+html[dir="rtl"] .appRowInfo{grid-area:info;text-align:right}
+html[dir="rtl"] .cardActions{grid-area:actions;justify-self:start}
+html[dir="rtl"] .appRowTitleLine,html[dir="rtl"] .appMeta{justify-content:flex-start}
+html[dir="rtl"] .appRowDesc{text-align:right}
 html[dir="rtl"] .toolbar select{padding:10px 13px 10px 34px}
 .verifiedBadge{width:22px;height:22px;border-radius:0;background:linear-gradient(145deg,#8b4ee8,#5d249d);box-shadow:0 2px 8px #6b2eaa55;clip-path:polygon(50% 0%,62% 8%,76% 5%,84% 17%,97% 22%,94% 37%,100% 50%,92% 62%,95% 77%,81% 83%,75% 96%,61% 92%,50% 100%,38% 92%,24% 96%,18% 83%,5% 77%,8% 62%,0 50%,6% 37%,3% 22%,16% 17%,24% 5%,38% 8%);font-size:13px}
 .adBadge{background:linear-gradient(135deg,#ffe45b,#ffb700);color:#4a3100;border:1px solid #fff2a3;box-shadow:0 0 8px #ffd000,0 0 18px #ffbf0055;text-shadow:0 1px 0 #fff8b0}
